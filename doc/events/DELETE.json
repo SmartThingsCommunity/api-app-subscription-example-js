@@ -1,0 +1,23 @@
+{
+  "messageType": "EVENT",
+  "eventData": {
+    "installedApp": {
+      "installedAppId": "f18cf08f-6c89-4194-a35d-b7a2211bb084",
+      "locationId": "5f278baa-aff0-4cf0-a323-3d9ee1fc58d5"
+    },
+    "events": [
+      {
+        "eventTime": "2019-06-23T22:04:51Z",
+        "eventType": "INSTALLED_APP_LIFECYCLE_EVENT",
+        "installedAppLifecycleEvent": {
+          "eventId": "ec8598fc-9602-11e9-a856-8f2a90a38a5a",
+          "locationId": "5f278baa-aff0-4cf0-a323-3d9ee1fc58d5",
+          "installedAppId": "f18cf08f-6c89-4194-a35d-b7a2211bb084",
+          "appId": "4406788a-c401-4752-a8ce-af7cf75d06d3",
+          "lifecycle": "DELETE",
+          "delete": {}
+        }
+      }
+    ]
+  }
+}

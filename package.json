@@ -1,0 +1,23 @@
+{
+  "name": "subscription-api-app-example",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.471.0",
+    "dynamodb-store": "^1.0.8",
+    "@smartthings/smartapp": "^1.2.1",
+    "dotenv": "^8.0.0",
+    "ejs": "~2.5.7",
+    "encodeurl": "^1.0.2",
+    "express": "~4.16.0",
+    "express-session": "^1.16.2",
+    "http-signature": "^1.1.1",
+    "morgan": "~1.9.0",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.7",
+    "sshpk": "^1.15.2"
+  }
+}

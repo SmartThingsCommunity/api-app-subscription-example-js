@@ -1,0 +1,18 @@
+{
+  "content-type": "application/json",
+  "accept": "application/json",
+  "authorization": "Signature keyId=\"/pl/useast2/1e-1b-cd-10-5d-32-a2-5e-8c-30-de-d8-3d-b0-19-4e-5b-76-13-1e\",signature=\"AqgdEKIfIGRnhEmuJVcnAjvmvPBCz9n70vTU2lu4glisMwm+4+AA4uTYnsPe/K43MO/3vi1tVf6S0OuS16OqqwS0Sk5VdewVFesWQgbxLMrWFtRlt0vIfOarq2AknocW47ksvoZLxFC1sOe3KL058FwbyNqfhOHV96SX0lmamRwC6vw+aOXxzX/bl7O6XQTQDsWTSENjvEPIj8nZmysSF3tVDlW3Bi12cHQ5oZkhqj+b7dH7hEfnERD3+byEotGKb9qa1Pb6MKvtZkWOnODiub/mEjFpgTSeDdnrKvh1/eE4OxuJSFT0Vo01Ycr8vmf9nXJGXb2BfdvLjnQwyl0JBw==\",headers=\"(request-target) digest date\",algorithm=\"rsa-sha256\"",
+  "digest": "SHA256=zbxlPkdU/GJdDcW4LJ2ubXZoiC1ztgvbsL2ATNdmoRY=",
+  "date": "Sun, 23 Jun 2019 22:04:52 UTC",
+  "x-st-correlation": "CB0BFABB-42A8-4BF8-A6D6-1E5086856794",
+  "x-b3-traceid": "64913b7171630d84",
+  "x-b3-spanid": "2bfacbc5239ee3de",
+  "x-b3-parentspanid": "d63d7f76f5d14bed",
+  "x-b3-sampled": "0",
+  "cookie": "connect.sid=s%3AlYm2d3HlZXRbpO6vhu1BNV6Az5M5oO9P.ZkjJdoAwlq07YNajkloBCUh8N3dWOYj%2FphCQr71VfvM",
+  "content-length": "522",
+  "host": "smartthings-oauth.ngrok.io",
+  "user-agent": "AHC/2.1",
+  "x-forwarded-proto": "https",
+  "x-forwarded-for": "52.14.10.9"
+}

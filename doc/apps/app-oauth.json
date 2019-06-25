@@ -1,0 +1,15 @@
+{
+  "clientName": "API Access Example",
+  "scope": [
+    "i:deviceprofiles",
+    "r:devices:*",
+    "r:locations:*",
+    "r:scenes:*",
+    "x:devices:*",
+    "x:scenes:*"
+  ],
+  "redirectUris": [
+    "http://localhost:3000/oauth/callback",
+    "https://smartthings-oauth.ngrok.io/oauth/callback"
+  ]
+}

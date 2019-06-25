@@ -1,0 +1,27 @@
+{
+  "messageType": "EVENT",
+  "eventData": {
+    "installedApp": {
+      "installedAppId": "45a3769e-bbad-4bbb-af14-d968b0ee44d8",
+      "locationId": "5f278baa-aff0-4cf0-a323-3d9ee1fc58d5"
+    },
+    "events": [
+      {
+        "eventTime": "2019-06-23T22:21:37Z",
+        "eventType": "DEVICE_EVENT",
+        "deviceEvent": {
+          "eventId": "444d24bf-9605-11e9-94ef-dbdb1e56af85",
+          "locationId": "5f278baa-aff0-4cf0-a323-3d9ee1fc58d5",
+          "deviceId": "66e6a13c-57d6-4802-89ed-45e4bc61aa2f",
+          "componentId": "main",
+          "capability": "switch",
+          "attribute": "switch",
+          "value": "off",
+          "valueType": "string",
+          "stateChange": true,
+          "subscriptionName": "switchHandler"
+        }
+      }
+    ]
+  }
+}

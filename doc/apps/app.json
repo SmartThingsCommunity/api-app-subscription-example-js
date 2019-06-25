@@ -1,0 +1,26 @@
+{
+  "appName": "bobs-api-access-example-5",
+  "appType": "API_ONLY",
+  "classifications": [
+    "AUTOMATION"
+  ],
+  "displayName": "API Access Example 5",
+  "description": "Example of an OAuth-In app",
+  "singleInstance": false,
+  "installMetadata": {},
+  "apiOnly": {
+    "targetUrl": "https://smartthings-oauth.ngrok.io"
+  },
+  "oauth": {
+    "clientName": "API Access Example 2",
+    "scope": [
+      "i:deviceprofiles",
+      "r:locations:*",
+      "r:scenes:*",
+      "x:scenes:*",
+      "r:devices:*",
+      "x:devices:*"
+    ],
+    "redirectUris": ["https://smartthings-oauth.ngrok.io/oauth/callback"]
+  }
+}
