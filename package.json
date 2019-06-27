@@ -6,10 +6,11 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
-    "aws-sdk": "^2.471.0",
-    "dynamodb-store": "^1.0.8",
+    "@smartthings/dynamodb-context-store": "^1.0.1",
     "@smartthings/smartapp": "^1.2.1",
+    "aws-sdk": "^2.471.0",
     "dotenv": "^8.0.0",
+    "dynamodb-store": "^1.0.8",
     "ejs": "~2.5.7",
     "encodeurl": "^1.0.2",
     "express": "~4.16.0",
