@@ -9,7 +9,7 @@ const logger = require('morgan')
 const encodeUrl = require('encodeurl')
 const httpSignature = require("http-signature");
 const rp = require('request-promise-native')
-const SmartApp = require('@smartthings/smartapp/lib/api-app')
+const {ApiApp} = require('@smartthings/smartapp')
 const DynamoDBStore = require('dynamodb-store');
 const DynamoDBContextStore = require('@smartthings/dynamodb-context-store')
 
@@ -23,7 +23,7 @@ const scope = encodeUrl('i:deviceprofiles r:locations:* r:devices:* x:devices:* 
 const contextStore = new DynamoDBContextStore('us-east-1', 'api-app-subscription-context');
 
 /* SmartThings API */
-const smartApp = new SmartApp()
+const apiApp = new ApiApp()
 	.appId('6c2aee0e-b6a3-4099-904c-94deb2f90431')
 	.apiUrl(apiUrl)
 	.clientId(clientId)
@@ -55,7 +55,7 @@ server.post('/', async (req, res) => {
 	//console.log(`HEADERS: ${JSON.stringify(req.headers, null, 2)}`)
 	//console.log(`BODY: ${JSON.stringify(req.body, null, 2)}`)
 
-	smartApp.handleEventCallback(req, res);
+	apiApp.handleEventCallback(req, res);
 
 	//const auth = await isAuthorized(req)
 	//console.log(`AUTHORIZED: ${auth}`)
@@ -77,7 +77,7 @@ server.get('/',async (req, res) => {
 	if (req.session.smartThings) {
 		// Context cookie found, use it to list scenes
 		const data = req.session.smartThings
-		smartApp.withContext(data).then(async ctx => {
+		apiApp.withContext(data).then(async ctx => {
 			const api = await ctx.getApi()
 			api.scenes.list().then(scenes => {
 				res.render('scenes', {
@@ -106,7 +106,7 @@ server.get('/',async (req, res) => {
 
 /* Uninstalls app and clears context cookie */
 server.get('/logout', async function(req, res) {
-	const ctx = await smartApp.withContext(req.session.smartThings)
+	const ctx = await apiApp.withContext(req.session.smartThings)
 	await ctx.getApi().then(api => {
 		api.installedApps.deleteInstalledApp()
 		req.session.destroy(err => {
@@ -117,7 +117,7 @@ server.get('/logout', async function(req, res) {
 
 /* Executes a scene */
 server.post('/scenes/:sceneId', async (req, res) => {
-	smartApp.withContext(req.session.smartThings).then(async ctx => {
+	apiApp.withContext(req.session.smartThings).then(async ctx => {
 		ctx.getApi().then(api => {
 			api.scenes.execute(req.params.sceneId).then(result => {
 				res.send(result)
@@ -132,7 +132,7 @@ server.get('/oauth/callback', async (req, res) => {
 	console.log(`/oauth/callback PATH: ${req.path}`)
 	console.log(`/oauth/callback QUERY: ${JSON.stringify(req.query, null, 2)}`)
 
-	const ctx = await smartApp.handleOAuthCallback(req)
+	const ctx = await apiApp.handleOAuthCallback(req)
 
 	// Create a subscription
 	await ctx.api.subscriptions.subscribeToCapability('switch', 'switch', 'switchHandler');
@@ -180,7 +180,6 @@ server.get('/oauth/callback', async (req, res) => {
 
 })
 
-contextStore.createTableIfNecessary();
 server.listen(port);
 console.log(`Open:     ${process.env.URL}`);
 console.log(`Callback: ${process.env.URL}/oauth/callback`);
