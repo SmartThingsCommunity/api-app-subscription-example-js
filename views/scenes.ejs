@@ -8,23 +8,39 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
     <script language="JavaScript">
 		$(document).ready(function() {
-			$('.list-group a').click(function() {
+			$('.list-group a.scene').click(function() {
 				const id = $(this).attr('id')
                 $.post(`/scenes/${id}`);
             });
+			$('.list-group a.mode').click(function() {
+				const id = $(this).attr('id')
+				$.post(`/mode/${id}`);
+			});
 		});
     </script>
 </head>
 <body>
-<h1><%= locationName %> Scenes</h1>
+<h1><%= locationName %></h1>
 <p><%= errorMessage %></p>
+
+<h2>Scenes</h2>
 <div class="list-group">
     <% scenes.items.forEach(function(scene){ %>
-    <a href="#" id="<%= scene.sceneId %>" class="list-group-item list-group-item-action">
+    <a href="#" id="<%= scene.sceneId %>" class="list-group-item list-group-item-action scene">
         <%= scene.sceneName %>
     </a>
     <% }); %>
 </div>
+
+<h2>Modes</h2>
+<div class="list-group">
+    <% modes.items.forEach(function(mode){ %>
+    <a href="#" id="<%= mode.id %>" class="list-group-item list-group-item-action mode">
+        <%= mode.name %>
+    </a>
+    <% }); %>
+</div>
+
 <p>
     <a href="/logout">Logout</a>
 </p>

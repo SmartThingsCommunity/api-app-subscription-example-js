@@ -39,6 +39,8 @@ curl -X POST -H "Authorization: Bearer {REPLACE-WITH-YOUR-PAT-TOKEN}" \
     "clientName": "Simple API App Example",
     "scope": [
       "r:locations:*",
+      "r:devices:*",
+      "x:devices:*",
       "r:scenes:*",
       "x:scenes:*"
     ],

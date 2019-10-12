@@ -4,26 +4,31 @@ require('dotenv').config();
 const express = require('express')
 const session = require("express-session");
 const path = require('path')
-const sshpk = require("sshpk");
 const logger = require('morgan')
 const encodeUrl = require('encodeurl')
-const httpSignature = require("http-signature");
-const rp = require('request-promise-native')
-const {ApiApp} = require('@smartthings/smartapp')
+const SmartApp = require('@smartthings/smartapp')
 const DynamoDBStore = require('dynamodb-store');
 const DynamoDBContextStore = require('@smartthings/dynamodb-context-store')
 
 const port = process.env.PORT
 const apiUrl = process.env.ST_API_URL || 'https://api.smartthings.com'
-const keyUrl = process.env.ST_KEY_URL || 'https://key.smartthings.com'
 const clientId = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
 const redirectUri = `${process.env.URL}/oauth/callback`
-const scope = encodeUrl('i:deviceprofiles r:locations:* r:devices:* x:devices:* r:scenes:* x:scenes:*');
-const contextStore = new DynamoDBContextStore('us-east-1', 'api-app-subscription-context');
+const contextStore = new DynamoDBContextStore({
+	table: {
+		name: 'api-app-subscription-example',
+		hashKey : "id"
+	},
+	autoCreate: false
+});
+
+let scope = encodeUrl('i:deviceprofiles r:locations:* r:devices:* x:devices:* r:scenes:* x:scenes:*');
+scope = encodeUrl('r:locations:* r:devices:* r:scenes:*');
+
 
 /* SmartThings API */
-const apiApp = new ApiApp()
+const apiApp = new SmartApp()
 	.appId('6c2aee0e-b6a3-4099-904c-94deb2f90431')
 	.apiUrl(apiUrl)
 	.clientId(clientId)
@@ -33,6 +38,15 @@ const apiApp = new ApiApp()
 	.subscribedEventHandler('switchHandler', async (ctx, event) => {
 		console.log(`*** EVENT: Switch ${event.deviceId} is ${event.value}`)
 	})
+	.subscribedEventHandler('deviceLifecycleHandler', async (ctx, event) => {
+		console.log(`*** EVENT: DeviceLifecycle ${JSON.stringify(event, null, 2)}`)
+	}, 'DEVICE_LIFECYCLE_EVENT')
+	.subscribedEventHandler('deviceHealthHandler', async (ctx, event) => {
+		console.log(`*** EVENT: DeviceHealth ${JSON.stringify(event, null, 2)}`)
+	}, 'DEVICE_HEALTH_EVENT')
+	.subscribedEventHandler('sceneLifecycleHandler', async(ctx, event) => {
+		console.log(`*** EVENT: SceneLifecycle ${JSON.stringify(event, null, 2)}`)
+	}, 'SCENE_LIFECYCLE_EVENT')
 
 /* Webserver setup */
 const server = express()
@@ -41,35 +55,28 @@ server.set('view engine', 'ejs')
 server.use(logger('dev'))
 server.use(express.json())
 server.use(express.urlencoded({extended: false}))
-server.use(session({
-	store: new DynamoDBStore({"table": {"name": 'api-all-subscription-sessions'}}),
-	secret: "api example secret",
-	resave: false,
-	saveUninitialized: true,
-	cookie: {secure: false}
-}));
 server.use(express.static(path.join(__dirname, 'public')))
 
 /* Accepts registration challenge and confirms app */
 server.post('/', async (req, res) => {
-	//console.log(`HEADERS: ${JSON.stringify(req.headers, null, 2)}`)
-	//console.log(`BODY: ${JSON.stringify(req.body, null, 2)}`)
-
-	apiApp.handleEventCallback(req, res);
-
-	//const auth = await isAuthorized(req)
-	//console.log(`AUTHORIZED: ${auth}`)
-    //
-	// TODO -- incorporate confirmation into SDK & implement new signature check scheme
-	//if (req.body.confirmationData && req.body.confirmationData.confirmationUrl) {
-	//	rp.get(req.body.confirmationData.confirmationUrl).then(data => {
-	//		console.log(data)
-	//	})
-	//}
-	//else {
-	//}
-	//res.send('{}')
+	console.log(`HEADERS: ${JSON.stringify(req.headers, null, 2)}`)
+	console.log(`BODY: ${JSON.stringify(req.body, null, 2)}`)
+	apiApp.handleHttpCallback(req, res);
 })
+
+/* Define session middleware here so that it isn't used by the callback method */
+server.use(session({
+	store: new DynamoDBStore({
+		"table": {
+			"name": "api-app-subscription-example",
+			"hashKey" : "id"
+		}
+	}),
+	secret: "api example secret",
+	resave: false,
+	saveUninitialized: true,
+	cookie: {secure: false}
+}))
 
 /* Main page. Shows link to SmartThings if not authenticated and list of scenes afterwards */
 server.get('/',async (req, res) => {
@@ -77,23 +84,27 @@ server.get('/',async (req, res) => {
 	if (req.session.smartThings) {
 		// Context cookie found, use it to list scenes
 		const data = req.session.smartThings
-		apiApp.withContext(data).then(async ctx => {
-			const api = await ctx.getApi()
-			api.scenes.list().then(scenes => {
+		apiApp.withContext(data.installedAppId).then(async ctx => {
+			await ctx.retrieveTokens()
+			const scenes = await ctx.api.scenes.list()
+			const modes = await ctx.api.modes.list()
+			try {
 				res.render('scenes', {
 					installedAppId: data.installedAppId,
 					locationName: data.locationName,
 					errorMessage: '',
-					scenes: scenes
+					scenes: scenes,
+					modes: modes
 				})
-			}).catch(error => {
+			} catch (error) {
 				res.render('scenes', {
 					installedAppId: data.installedAppId,
 					locationName: data.locationName,
 					errorMessage: `${error.message}`,
-					scenes: {items:[]}
+					scenes: {items:[]},
+					modes: {items:[]}
 				})
-			})
+			}
 		})
 	}
 	else {
@@ -106,23 +117,10 @@ server.get('/',async (req, res) => {
 
 /* Uninstalls app and clears context cookie */
 server.get('/logout', async function(req, res) {
-	const ctx = await apiApp.withContext(req.session.smartThings)
-	await ctx.getApi().then(api => {
-		api.installedApps.deleteInstalledApp()
-		req.session.destroy(err => {
-			res.redirect('/')
-		})
-	})
-})
-
-/* Executes a scene */
-server.post('/scenes/:sceneId', async (req, res) => {
-	apiApp.withContext(req.session.smartThings).then(async ctx => {
-		ctx.getApi().then(api => {
-			api.scenes.execute(req.params.sceneId).then(result => {
-				res.send(result)
-			})
-		})
+	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
+	await ctx.api.installedApps.deleteInstalledApp()
+	req.session.destroy(err => {
+		res.redirect('/')
 	})
 })
 
@@ -134,34 +132,18 @@ server.get('/oauth/callback', async (req, res) => {
 
 	const ctx = await apiApp.handleOAuthCallback(req)
 
-	// Create a subscription
+	// Subscribe to lifecycle events (create, update & delete) for all devices in the location
+	await ctx.api.subscriptions.unsubscribeAll()
+	await ctx.api.subscriptions.subscribeToDeviceLifecycle('deviceLifecycleHandler');
+	//await ctx.api.subscriptions.subscribeToSceneLifecycle('sceneLifecycleHandler');
+	//await ctx.api.subscriptions.subscribeToDeviceHealth('deviceHealthHandler');
+
+	//await ctx.api.subscriptions.subscribeToSecuritySystem('securityArmStateHandler');
+	//await ctx.api.subscriptions.subscribeToHubHealth('hubHealthHandler');
+
+	// Subscribe to all switch state changes in the location
 	await ctx.api.subscriptions.subscribeToCapability('switch', 'switch', 'switchHandler');
 
-	// Create a device
-/*
-	const map = {
-		label: 'API App Switch',
-		profileId: process.env.DEVICE_PROFILE_ID
-	};
-	ctx.api.devices.create(map)
-		.then(data => {
-			ctx.api.devices.sendEvents(data.deviceId, [
-				{
-					component: 'main',
-					capability: 'switch',
-					attribute: 'switch',
-					value: 'off'
-				}
-			]);
-		})
-		.catch(err => {
-			console.log(`ERORR CREATING DEVICE: ${JSON.stringify(err, null, 2)}`)
-			if (err.body) {
-				console.log(err.body)
-			}
-		})
-
-*/
 	// Get the location name
 	const location = await ctx.api.locations.get(ctx.locationId)
 
@@ -169,15 +151,29 @@ server.get('/oauth/callback', async (req, res) => {
 	const sessionData = {
 		locationId: ctx.locationId,
 		locationName: location.name,
-		installedAppId: ctx.installedAppId,
-		authToken: ctx.authToken,
-		refreshToken: ctx.refreshToken
+		installedAppId: ctx.installedAppId
 	}
 	req.session.smartThings = sessionData
 
 	// Redirect back to the main mage
 	res.redirect('/')
 
+})
+
+/* Executes a scene */
+server.post('/scenes/:sceneId', async (req, res) => {
+	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
+	ctx.api.scenes.execute(req.params.sceneId).then(result => {
+		res.send(result)
+	})
+})
+
+/* Changes mode */
+server.post('/modes/:id', async (req, res) => {
+	const ctx = apiApp.withContext(req.session.smartThings.installedAppId)
+	api.modes.update(req.params.id).then(result => {
+		res.send(result)
+	})
 })
 
 server.listen(port);
