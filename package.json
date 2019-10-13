@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "@smartthings/dynamodb-context-store": "^2.0.1",
-    "@smartthings/smartapp": "file:../../repos/smartapp-sdk-nodejs",
+    "@smartthings/smartapp": "^1.13.4",
     "aws-sdk": "^2.485.0",
     "dotenv": "^8.0.0",
     "dynamodb-store": "^1.0.8",
@@ -14,6 +14,7 @@
     "encodeurl": "^1.0.2",
     "express": "~4.16.0",
     "express-session": "^1.16.2",
+    "express-sse": "^0.5.1",
     "http-signature": "^1.1.1",
     "morgan": "~1.9.0",
     "request": "^2.88.0",
