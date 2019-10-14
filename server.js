@@ -12,22 +12,34 @@ const DynamoDBContextStore = require('@smartthings/dynamodb-context-store')
 const SSE = require('express-sse')
 
 const port = process.env.PORT
-const apiUrl = process.env.ST_API_URL || 'https://api.smartthings.com'
+const appId = process.env.APP_ID
 const clientId = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
-const redirectUri = `${process.env.URL}/oauth/callback`
+const tableName = process.env.DYNAMODB_TABLE || 'api-app-subscription-example'
+const serverUrl = process.env.SERVER_URL || `https://${process.env.PROJECT_DOMAIN}.glith.me`
+const redirectUri =  `${serverUrl}/oauth/callback`
 const scope = encodeUrl('r:locations:* r:devices:* x:devices:*');
 
-/* Server-sent events */
+if (!process.env.AWS_REGION && !process.env.AWS_PROFILE) {
+	console.log('\n***************************************************************************')
+	console.log('*** Please add AWS_REGION, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY ***')
+	console.log('*** entries to the .env file to run the server                          ***')
+	console.log('***************************************************************************')
+	return
+}
+
+/*
+ * Server-sent events. Used to update the status of devices on the web page from subscribed events
+ */
 const sse = new SSE()
 
 /*
  * Persistent storage of session data in DynamoDB. Table will be automatically created if it doesn't already exist.
  */
 const sessionStore = new DynamoDBStore({
-	"table": {
-		"name": "api-app-subscription-example",
-		"hashKey" : "id"
+	table: {
+		name: tableName,
+		hashKey : "id"
 	}
 })
 
@@ -37,32 +49,36 @@ const sessionStore = new DynamoDBStore({
  */
 const contextStore = new DynamoDBContextStore({
 	table: {
-		name: 'api-app-subscription-example',
+		name: tableName,
 		hashKey : "id"
 	},
 	autoCreate: false
 });
 
 /*
- * SmartApp initialization. The SmartApp provides an API for making REST calls to the SmartThings platform and
+ * Thew SmartApp. Provides an API for making REST calls to the SmartThings platform and
  * handles calls from the platform for subscribed events as well as the initial app registration challenge.
  */
 const apiApp = new SmartApp()
-	.appId('6c2aee0e-b6a3-4099-904c-94deb2f90431')
-	.apiUrl(apiUrl)
+	.appId(appId)
 	.clientId(clientId)
 	.clientSecret(clientSecret)
 	.contextStore(contextStore)
 	.redirectUri(redirectUri)
 	.subscribedEventHandler('switchHandler', async (ctx, event) => {
-		console.log(`*** EVENT: Switch ${event.deviceId} is ${event.value}`)
-		sse.send({
-			deviceId: event.deviceId,
-			switchState: event.value
-		})
+		/* Device event handler. Current implementation only supports main component switches */
+		if (event.componentId === 'main') {
+			sse.send({
+				deviceId: event.deviceId,
+				switchState: event.value
+			})
+		}
+		console.log(`EVENT ${event.deviceId} ${event.componentId}.${event.capability}.${event.attribute}: ${event.value}`)
 	})
 
-/* Webserver setup */
+/*
+ * Webserver setup
+ */
 const server = express()
 server.set('views', path.join(__dirname, 'views'))
 server.set('view engine', 'ejs')
@@ -71,14 +87,19 @@ server.use(express.json())
 server.use(express.urlencoded({extended: false}))
 server.use(express.static(path.join(__dirname, 'public')))
 
-/* Handles calls to the SmartApp from SmartThings, i.e. registration challenges and device events */
+/*
+ * Handles calls to the SmartApp from SmartThings, i.e. registration challenges and device events
+ */
 server.post('/', async (req, res) => {
-	//console.log(`HEADERS: ${JSON.stringify(req.headers, null, 2)}`)
-	//console.log(`BODY: ${JSON.stringify(req.body, null, 2)}`)
+	console.log(`HEADERS: ${JSON.stringify(req.headers, null, 2)}`)
+	console.log(`BODY: ${JSON.stringify(req.body, null, 2)}`)
 	apiApp.handleHttpCallback(req, res);
 })
 
-/* Define session middleware here so that it isn't used by the callback method */
+/*
+ * Session middleware. Defined here so that it isn't used by the callback method, which would create lots of
+ * unnecessary sessions.
+ */
 server.use(session({
 	store: sessionStore,
 	secret: "api example secret",
@@ -87,11 +108,12 @@ server.use(session({
 	cookie: {secure: false}
 }))
 
-/* Main page. Shows link to SmartThings if not authenticated and list of scenes afterwards */
+/*
+ * Main web page. Shows link to SmartThings if not authenticated and list of switch devices afterwards
+ */
 server.get('/',async (req, res) => {
-	console.log(req.session.smartThings)
 	if (req.session.smartThings) {
-		// Context cookie found, use it to list scenes
+		// Cookie found, display page with list of devices
 		const data = req.session.smartThings
 		res.render('devices', {
 			installedAppId: data.installedAppId,
@@ -101,7 +123,7 @@ server.get('/',async (req, res) => {
 	else {
 		// No context cookie. Display link to authenticate with SmartThings
 		res.render('index', {
-			url: `${apiUrl}/oauth/authorize?client_id=${clientId}&scope=${scope}&response_type=code&redirect_uri=${redirectUri}`
+			url: `https://api.smartthings.com/oauth/authorize?client_id=${clientId}&scope=${scope}&response_type=code&redirect_uri=${redirectUri}`
 		})
 	}
 })
@@ -111,8 +133,9 @@ server.get('/',async (req, res) => {
  */
 server.get('/viewData', async (req, res) => {
 	const data = req.session.smartThings
+
+	// Read the context from DynamoDB so that API calls can be made
 	const ctx = await apiApp.withContext(data.installedAppId)
-	ctx.retrieveTokens()
 	try {
 		const ops = await ctx.api.devices.findByCapability('switch').then(data => {
 			return data.items.map(it => {
@@ -127,7 +150,6 @@ server.get('/viewData', async (req, res) => {
 		})
 		let devices = await Promise.all(ops)
 		devices = await Promise.all(ops)
-		console.log(JSON.stringify(devices, null, 2))
 		res.send({
 			errorMessage: '',
 			devices: devices.sort( (a, b) => {
@@ -142,28 +164,36 @@ server.get('/viewData', async (req, res) => {
 	}
 });
 
-/* Uninstalls app and clears context cookie */
+/*
+ * Logout. Uninstalls app and clears context cookie
+ */
 server.get('/logout', async function(req, res) {
+	// Read the context from DynamoDB so that API calls can be made
 	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
+
+	// Delete the installed app instance from SmartThings
 	await ctx.api.installedApps.deleteInstalledApp()
+
+	// Delete the session data
 	req.session.destroy(err => {
 		res.redirect('/')
 	})
 })
 
-/* Handles OAuth redirect */
+/*
+ * Handles OAuth redirect
+ */
 server.get('/oauth/callback', async (req, res) => {
-	console.log(`/oauth/callback HEADERS: ${JSON.stringify(req.headers, null, 2)}`)
-	console.log(`/oauth/callback PATH: ${req.path}`)
-	console.log(`/oauth/callback QUERY: ${JSON.stringify(req.query, null, 2)}`)
 
+	// Store the SmartApp context including access and refresh tokens. Returns a context object for use in making
+	// API calls to SmartThings
 	const ctx = await apiApp.handleOAuthCallback(req)
 
-	// Subscribe to device switch events
+	// Remove any existing subscriptions and ubscribe to device switch events
 	await ctx.api.subscriptions.unsubscribeAll()
 	await ctx.api.subscriptions.subscribeToCapability('switch', 'switch', 'switchHandler');
 
-	// Get the location name
+	// Get the location name (for display on the web page)
 	const location = await ctx.api.locations.get(ctx.locationId)
 
 	// Set the cookie with the context, including the location ID and name
@@ -173,28 +203,32 @@ server.get('/oauth/callback', async (req, res) => {
 		installedAppId: ctx.installedAppId
 	}
 
-	// Redirect back to the main mage
+	// Redirect back to the main page
 	res.redirect('/')
 
 })
 
 /**
- * Executes a device command
+ * Executes a device command from the web page
  */
 server.post('/command/:deviceId', async(req, res) => {
+	// Read the context from DynamoDB so that API calls can be made
 	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
+
+	// Execute the device command
 	await ctx.api.devices.postCommands(req.params.deviceId, req.body.commands)
 	res.send({})
 });
 
 /**
- * SSE connections
+ * Handle SSE connection from the web page
  */
 server.get('/events', sse.init);
 
 /**
- * Start the server
+ * Start the HTTP server and log URLs. Use the "open" URL for starting the OAuth process. Use the "callback"
+ * URL in the API app definition using the SmartThings Developer Workspace.
  */
 server.listen(port);
-console.log(`Open:     ${process.env.URL}`);
-console.log(`Callback: ${process.env.URL}/oauth/callback`);
+console.log(`\nWebsite URL -- Use this URL to log into SmartThings and connect this app to your account:\n${serverUrl}\n`);
+console.log(`Redirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Worspace:\n${redirectUri}`);

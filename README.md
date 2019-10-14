@@ -1,68 +1,101 @@
-# Simple API App Example
+# Event Subscription API App Example
 
 ## Overview
 
-This simple NodeJS Express app illustrates how to create an "API Only" application that connects to your SmartThings
-account with OAuth2 and allows you to execute scenes. It's a very simple app that stores the access and refresh tokens
-in session state. By default it uses the 
-[express-session](https://www.npmjs.com/package/express-session#compatible-session-stores) in-memory session store, 
-so you will lose your session data
-when you restart the server, but you can use another 
-[compatible session store](https://www.npmjs.com/package/express-session#compatible-session-stores)
-to make the session persist between server
-restarts. This example uses the 
-[@SmartThings/SmartApp](https://www.npmjs.com/package/@smartthings/smartapp) SDK NPM module for making the
-API calls to list and execute scenes.
+This NodeJS Express application illustrates how to create an _API Access_ SmartApp that connects to your SmartThings
+account with OAuth2 to control devices and subscribe to device events. The application uses the 
+[SmartThings SmartApp](https://www.npmjs.com/package/@smartthings/smartapp) SDK NPM module for making the
+API calls to control switch devices and subscribe to switch events. The app create a web page that displays
+the state of all switches in a location and allows those switches to be turned on and off.
+
+API access tokens and web session state are stored in [AWS DynamoDB](https://aws.amazon.com/dynamodb/), so you will
+need an AWS account to run the app as it is written. The app uses the 
+SmartThings [dynamodb-context-store](https://www.npmjs.com/package/@smartthings/dynamodb-context-store) to store
+the API tokens and the [dynamodb-store)](https://www.npmjs.com/package/dynamodb-store) for storing session state.
+
+## Access to tools and documentation
+
+The _API Access_ option illustrated in this example has not yet been released to the general public.
+[Fill out this form](https://smartthings.developer.samsung.com/oauth-request) to request access to the tools and
+documentation needed to install this example.
 
 ## Quickstart
 
-### Register your app
+- Re-mix this Glitch Project (or deploy the server in some other publicly accessible web server supporting HTTPS). 
+
+- Edit the `.env` file and add an `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` and restart the server (Glitch
+will do that automatically by default). When the server starts make note of the URLs printed out in the log.
+
+- Go to the [SmartThings Developer Workspace](https://smartthings.developer.samsung.com/workspace) and create an new
+[API Access](https://smartthings.developer.samsung.com/workspace/projects/new?type=CPT-OAUTH) project in your organization.
+If the previous link doesn't work and you don't see an option for creating an API access project, then your access
+has not yet been approved.
 
 - Get a personal token with at least `w:apps` scope from [https://account.smartthings.com/tokens](https://account.smartthings.com/tokens)
 
 - Register the app by replacing the `Authorization` header, `appName`, `targetUrl` and `redirectUris` fields and running 
-the following command :
+the following command and saving the response. You may also want to change the `displayName` and `clientName` fields.
 
 ```bash
 curl -X POST -H "Authorization: Bearer {REPLACE-WITH-YOUR-PAT-TOKEN}" \
 "https://api.smartthings.com/apps" \
 -d '{
-  "appName": "{REPLACE-WITH-YOUR-APP-NAME}",
-  "displayName": "Simple API App Example",
-  "description": "Demonstrates basics of a SmartThings API app which authenticates with the SmartThings platform using OAuth2",
-  "singleInstance": false,
+  "appName": "{REPLACE-WITH-YOUR-UNIQUE-APP-NAME}",
+  "displayName": "API App Subscription Example",
+  "description": "API app that allows logging into SmartThings to control and see the status of switches",
+  "singleInstance": true,
   "appType": "API_ONLY",
   "classifications": [
-    "AUTOMATION"
+    "CONNECTED_SERVICE"
   ],
+  "apiOnly": {
+    "targetUrl": "{REPLACE-WITH-WEBSITE-URL-FROM-SERVER-LOG}"
+  },
   "oauth": {
-    "clientName": "Simple API App Example",
+    "clientName": "API App Subscription Example",
     "scope": [
       "r:locations:*",
       "r:devices:*",
-      "x:devices:*",
-      "r:scenes:*",
-      "x:scenes:*"
+      "x:devices:*"
     ],
-    "redirectUris": ["{REPLACE-WITH-YOUR-TUNNEL-URL}/oauth/callback"]
+    "redirectUris": ["{REPLACE-WITH-REDIRECT-URI-FROM-SERVER-LOG"]
   }
 }'
 ```
-
-Save the response somewhere. Put the `oauthClientId` and `oauthClientSecret` fields from that response in the `.env` 
-file as `CLIENT_ID` and `CLIENT_SECRET`.
-
-### Start the server
-```bash
-node server.js
+- If everything worked you should get a response that looks like the following example. 
+```json
+{
+  "app": {
+    "appName": "{YOUR-UNIQUE-APP-NAME}",
+    "appId": "aaaaaaaa-fe8a-495f-ba68-xxxxxxxxxxxx",
+    "appType": "API_ONLY",
+    "principalType": "LOCATION",
+    "classifications": [
+      "CONNECTED_SERVICE"
+    ],
+    "displayName": "API App Subscription Example",
+    "description": "API app that allows logging into SmartThings to control and see the status of switches",
+    "singleInstance": true,
+    "installMetadata": {},
+    "owner": {
+      "ownerType": "USER",
+      "ownerId": "aaaaaaaa-332b-d60d-808d-xxxxxxxxxxxx"
+    },
+    "createdDate": "2019-10-14T14:44:31Z",
+    "lastUpdatedDate": "2019-10-14T14:44:31Z",
+    "apiOnly": {
+      "subscription": {
+        "targetUrl": "{WEBSITE-URL-YOU-SPECIFIED-IN-THE-COMMAND}",
+        "targetStatus": "PENDING"
+      }
+    }
+  },
+  "oauthClientId": "aaaaaaaa-a425-4dd6-98f3-xxxxxxxxxxxx",
+  "oauthClientSecret": "aaaaaaaa-10fb-4de8-8aec-xxxxxxxxxxxx"
+}
 ```
+- Copy the _appId_, _oauthClientId_, and _oauthClientSecret_ fields from the response into the corresponding fields in 
+your `.env` file and restart the server.
 
-### Authenticate with SmartThings and execute scenes
-
-1. Open a browser to your your public server tunnel URL
-2. Click the "Connect to SmartThings" link on the page
-3. Log in to your SmartThings account
-4. Select a location and authorize the app
-
-You will then see a page with all the scenes defined for that location. Clicking on a scene name should make an API call 
-to execute the scene.
+- Click on the _Website URL_ link in the log (or use the Show menu in Glitch) to visit your web page and click on the 
+_"Connect to SmartThings"_ link to log into your account, choose a location, and install the app.
