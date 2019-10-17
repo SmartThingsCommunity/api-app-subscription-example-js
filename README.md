@@ -13,13 +13,30 @@ need an AWS account to run the app as it is written. The app uses the
 SmartThings [dynamodb-context-store](https://www.npmjs.com/package/@smartthings/dynamodb-context-store) to store
 the API tokens and the [dynamodb-store)](https://www.npmjs.com/package/dynamodb-store) for storing session state.
 
-## Access to tools and documentation
+## Key files and directories 
 
-The _API Access_ option illustrated in this example has not yet been released to the general public.
-[Fill out this form](https://smartthings.developer.samsung.com/oauth-request) to request access to the tools and
-documentation needed to install this example.
+- public
+  - images -- image assets used by the web pages
+  - javascript -- javascript used by the web page for rendering and controlling devices
+  - stylesheets -- stylesheets used by the web pages
+- views
+  - devices.ejs -- page that displays switch devices and allows them to be controlled
+  - error.ejs -- error page
+  - index.ejs -- initial page with link to connect to SmartThings
+- server.js -- the Express server and SmartApp
+- .env -- file you create with AWS and app credentials
 
-## Quickstart
+## Getting Started
+
+### Prerequisites
+- [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs.com/) installed
+- [ngrok](https://ngrok.com/) or similar tool to create a secure tunnel to a publically available URL
+- [AWS Account](https://aws.amazon.com) for hosting 
+[DynamoDB](https://docs.aws.amazon.com/dynamodb/index.html) database or 
+[local DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) instance 
+(though that option has not been tested with this app)
+
+## Instructions
 
 - Re-mix this Glitch Project (or deploy the server in some other publicly accessible web server supporting HTTPS). 
 
