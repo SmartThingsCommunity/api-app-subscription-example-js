@@ -170,7 +170,11 @@ server.get('/logout', async function(req, res) {
 	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
 
 	// Delete the installed app instance from SmartThings
-	await ctx.api.installedApps.deleteInstalledApp()
+	try {
+		await ctx.api.installedApps.deleteInstalledApp()
+	} catch (error) {
+		console.log(`Error deleting app ${error}`)
+	}
 
 	// Delete the session data
 	req.session.destroy(err => {
