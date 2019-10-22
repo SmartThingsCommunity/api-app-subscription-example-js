@@ -52,12 +52,16 @@ npm install
 ```
 
 - Create a file named `.env` in the project directory and set the base URL of the server to your ngrok URL 
-(or the URL you configured in your local hosts file):
+(or the URL you configured in your local hosts file), your AWS credentials, and the AWS region where the
+DynamoDB table is to be created (you can also configure AWS region and credentials in other ways). For example:
 ```$bash
 SERVER_URL=https://your-subdomain-name.ngrok.io
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=ABCDEFGHIJKLMNOPQRST
+#AWS_SECRET_ACCESS_KEY=aaGFHJHG457kJH++kljsdgIKLHJFD786sdghDFKL
 ```
 
-- Start your server and make note of the :
+- Start your server and make note of the information it prints out:
 ```$bash
 node server.js
 
