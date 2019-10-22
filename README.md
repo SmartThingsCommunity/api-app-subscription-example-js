@@ -13,7 +13,7 @@ need an AWS account to run the app as it is written. The app uses the
 SmartThings [dynamodb-context-store](https://www.npmjs.com/package/@smartthings/dynamodb-context-store) to store
 the API tokens and the [dynamodb-store)](https://www.npmjs.com/package/dynamodb-store) for storing session state.
 
-## Key files and directories 
+## Files and directories 
 
 - public
   - images -- image assets used by the web pages
@@ -29,90 +29,116 @@ the API tokens and the [dynamodb-store)](https://www.npmjs.com/package/dynamodb-
 ## Getting Started
 
 ### Prerequisites
+- A [Samsung Developer Workspace account](https://smartthings.developer.samsung.com/workspace/) with _API Access_ app approval. 
+Submit requests for approval using
+[this form](https://smartthings.developer.samsung.com/oauth-request)
+
 - [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs.com/) installed
+
 - [ngrok](https://ngrok.com/) or similar tool to create a secure tunnel to a publically available URL
+
 - [AWS Account](https://aws.amazon.com) for hosting 
 [DynamoDB](https://docs.aws.amazon.com/dynamodb/index.html) database or 
 [local DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) instance 
 (though that option has not been tested with this app)
 
 ## Instructions
+- Clone [this GitHub repository](https://github.com/SmartThingsCommunity/api-app-minimal-example-js), cd into the
+directory, and install the Node modules with NPM:
+```$bash
+git clone https://github.com/SmartThingsCommunity/api-app-minimal-example-js.git
+cd api-app-minimal-example-js
+npm install
+```
 
-- Re-mix this Glitch Project (or deploy the server in some other publicly accessible web server supporting HTTPS). 
+- Create a file named `.env` in the project directory and set the base URL of the server to your ngrok URL 
+(or the URL you configured in your local hosts file):
+```$bash
+SERVER_URL=https://your-subdomain-name.ngrok.io
+```
 
-- Edit the `.env` file and add an `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` and restart the server (Glitch
-will do that automatically by default). When the server starts make note of the URLs printed out in the log.
+- Start your server and make note of the :
+```$bash
+node server.js
+
+Website URL -- Use this URL to log into SmartThings and connect this app to your account:
+https://your-subdomain-name.ngrok.io
+
+Redirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Workspace:
+https://your-subdomain-name.ngrok.io/oauth/callback
+```
 
 - Go to the [SmartThings Developer Workspace](https://smartthings.developer.samsung.com/workspace) and create an new
 [API Access](https://smartthings.developer.samsung.com/workspace/projects/new?type=CPT-OAUTH) project in your organization.
 If the previous link doesn't work and you don't see an option for creating an API access project, then your access
-has not yet been approved.
+has not yet been approved. 
 
-- Get a personal token with at least `w:apps` scope from [https://account.smartthings.com/tokens](https://account.smartthings.com/tokens)
+- After creating the project click the Use the _Register an Application_ link and fill in the fields, and click _Save_. 
+Use the _Redirect URI_ value printed out in the server log and specify the 
+`r:locations:*`, `r:devices:*`, and `x:devices:*` scopes.
 
-- Register the app by replacing the `Authorization` header, `appName`, `targetUrl` and `redirectUris` fields and running 
-the following command and saving the response. You may also want to change the `displayName` and `clientName` fields.
+- Since this app will be subscribing to device event callback from the SmartThings platform, you need to define a URL 
+to receive those callbacks. The Developer Workspace currently doesn't have that functionality, but you set that URL using
+the SmartThings API. To do so:
 
-```bash
-curl -X POST -H "Authorization: Bearer {REPLACE-WITH-YOUR-PAT-TOKEN}" \
-"https://api.smartthings.com/apps" \
--d '{
-  "appName": "{REPLACE-WITH-YOUR-UNIQUE-APP-NAME}",
-  "displayName": "API App Subscription Example",
-  "description": "API app that allows logging into SmartThings to control and see the status of switches",
-  "singleInstance": true,
-  "appType": "API_ONLY",
-  "classifications": [
-    "CONNECTED_SERVICE"
-  ],
-  "apiOnly": {
-    "targetUrl": "{REPLACE-WITH-WEBSITE-URL-FROM-SERVER-LOG}"
-  },
-  "oauth": {
-    "clientName": "API App Subscription Example",
-    "scope": [
-      "r:locations:*",
-      "r:devices:*",
-      "x:devices:*"
-    ],
-    "redirectUris": ["{REPLACE-WITH-REDIRECT-URI-FROM-SERVER-LOG"]
-  }
-}'
-```
-- If everything worked you should get a response that looks like the following example. 
-```json
-{
-  "app": {
-    "appName": "{YOUR-UNIQUE-APP-NAME}",
-    "appId": "aaaaaaaa-fe8a-495f-ba68-xxxxxxxxxxxx",
-    "appType": "API_ONLY",
-    "principalType": "LOCATION",
-    "classifications": [
-      "CONNECTED_SERVICE"
-    ],
-    "displayName": "API App Subscription Example",
-    "description": "API app that allows logging into SmartThings to control and see the status of switches",
-    "singleInstance": true,
-    "installMetadata": {},
-    "owner": {
-      "ownerType": "USER",
-      "ownerId": "aaaaaaaa-332b-d60d-808d-xxxxxxxxxxxx"
-    },
-    "createdDate": "2019-10-14T14:44:31Z",
-    "lastUpdatedDate": "2019-10-14T14:44:31Z",
-    "apiOnly": {
-      "subscription": {
-        "targetUrl": "{WEBSITE-URL-YOU-SPECIFIED-IN-THE-COMMAND}",
-        "targetStatus": "PENDING"
+  - Get a personal token with at least `r:apps` and`w:apps` scope from [https://account.smartthings.com/tokens](https://account.smartthings.com/tokens)
+  
+  - Save the current definition for you app by running the following command, substituting your PAT_TOKEN and APP_ID. You can
+    get your APP_ID from the Developer Workspace
+    ```$bash
+        curl -H "Authorization: Bearer {PAT_TOKEN}" \
+             https://api.smartthings.com/apps/{APP_ID} > app.json
+    ```
+    
+    - Edit the `app.json` file to add the `targetUrl` property with the value `https://your-subdomain-name.ngrok.io` 
+    to the `apiOnly` section. The result should look something like this:
+    ```$bash
+    {
+      "appName": "api-app-subscription-test-1571704633875-935",
+      "appId": "c5a19a9b-2d88-40e6-9c55-ad177c5db73d",
+      "appType": "API_ONLY",
+      "principalType": "LOCATION",
+      "classifications": [
+        "CONNECTED_SERVICE"
+      ],
+      "displayName": "api-app-subscription-test",
+      "description": "Description",
+      "singleInstance": false,
+      "installMetadata": {
+        "certified": "false",
+        "maxInstalls": "50"
+      },
+      "owner": {
+        "ownerType": "USER",
+        "ownerId": "c257d2c7-332b-d60d-808d-12345678abcd"
+      },
+      "createdDate": "2019-10-22T00:37:14Z",
+      "lastUpdatedDate": "2019-10-22T00:37:15Z",
+      "apiOnly": {
+        "targetUrl": "https://your-subdomain-name.ngrok.io"
+      },
+      "ui": {
+        "pluginUri": "",
+        "dashboardCardsEnabled": false,
+        "preInstallDashboardCardsEnabled": false
       }
     }
-  },
-  "oauthClientId": "aaaaaaaa-a425-4dd6-98f3-xxxxxxxxxxxx",
-  "oauthClientSecret": "aaaaaaaa-10fb-4de8-8aec-xxxxxxxxxxxx"
-}
+    ```
+- Add the _APP_ID_, _CLIENT_ID_ and _CLIENT_SECRET_ properties from the Developer Workspace to your `.env` file. 
+For example:
+```$bash
+APP_ID=aaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa
+CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
+CLIENT_SECRET=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
-- Copy the _appId_, _oauthClientId_, and _oauthClientSecret_ fields from the response into the corresponding fields in 
-your `.env` file and restart the server.
 
-- Click on the _Website URL_ link in the log (or use the Show menu in Glitch) to visit your web page and click on the 
-_"Connect to SmartThings"_ link to log into your account, choose a location, and install the app.
+- Restart your server:
+```$bash
+node server.js
+```
+
+- Go to webside URL from the server log, log in with your SmartThings account credentials, and 
+choose a location. You should see a page listing all devices in that location with the _switch_
+capability. Tapping the device on the page should turn the switch on and off. You should also see
+the states of the switches on the page change when you turn them on and off with the SmartThings
+mobile app.

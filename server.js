@@ -91,8 +91,6 @@ server.use(express.static(path.join(__dirname, 'public')))
  * Handles calls to the SmartApp from SmartThings, i.e. registration challenges and device events
  */
 server.post('/', async (req, res) => {
-	console.log(`HEADERS: ${JSON.stringify(req.headers, null, 2)}`)
-	console.log(`BODY: ${JSON.stringify(req.body, null, 2)}`)
 	apiApp.handleHttpCallback(req, res);
 })
 
