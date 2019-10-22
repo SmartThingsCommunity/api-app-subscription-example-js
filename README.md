@@ -74,12 +74,25 @@ https://your-subdomain-name.ngrok.io/oauth/callback
 
 - Go to the [SmartThings Developer Workspace](https://smartthings.developer.samsung.com/workspace) and create an new
 [API Access](https://smartthings.developer.samsung.com/workspace/projects/new?type=CPT-OAUTH) project in your organization.
-If the previous link doesn't work and you don't see an option for creating an API access project, then your access
+If the previous link doesn't work and you don't see an option for creating an API Access project, then your access
 has not yet been approved. 
 
 - After creating the project click the Use the _Register an Application_ link and fill in the fields, and click _Save_. 
 Use the _Redirect URI_ value printed out in the server log and specify the 
 `r:locations:*`, `r:devices:*`, and `x:devices:*` scopes.
+
+- Add the _APP_ID_, _CLIENT_ID_ and _CLIENT_SECRET_ properties from the Developer Workspace to your `.env` file. 
+For example:
+```$bash
+APP_ID=aaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa
+CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
+CLIENT_SECRET=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+- Restart your server:
+```$bash
+node server.js
+```
 
 - Since this app will be subscribing to device event callback from the SmartThings platform, you need to define a URL 
 to receive those callbacks. The Developer Workspace currently doesn't have that functionality, but you set that URL using
@@ -128,17 +141,13 @@ the SmartThings API. To do so:
       }
     }
     ```
-- Add the _APP_ID_, _CLIENT_ID_ and _CLIENT_SECRET_ properties from the Developer Workspace to your `.env` file. 
-For example:
+- Update the app to add the targetUrl with the following command. Make sure that your server is running 
+when you run the command, as the platform will call it to confirm the target URL.
 ```$bash
-APP_ID=aaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa
-CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
-CLIENT_SECRET=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
-```
+curl -X PUT -H "Authorization: Bearer {PAT_TOKEN}" \
+      -d @app.json \
+      https://api.smartthings.com/apps/{APP_ID}
 
-- Restart your server:
-```$bash
-node server.js
 ```
 
 - Go to webside URL from the server log, log in with your SmartThings account credentials, and 
