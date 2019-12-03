@@ -43,11 +43,11 @@ Submit requests for approval using
 (though that option has not been tested with this app)
 
 ## Instructions
-- Clone [this GitHub repository](https://github.com/SmartThingsCommunity/api-app-minimal-example-js), cd into the
+- Clone [this GitHub repository](https://github.com/SmartThingsCommunity/api-app-subscription-example-js), cd into the
 directory, and install the Node modules with NPM:
 ```$bash
-git clone https://github.com/SmartThingsCommunity/api-app-minimal-example-js.git
-cd api-app-minimal-example-js
+git clone https://github.com/SmartThingsCommunity/api-app-subscription-example-js.git
+cd api-app-subscription-example-js
 npm install
 ```
 
@@ -58,7 +58,7 @@ DynamoDB table is to be created (you can also configure AWS region and credentia
 SERVER_URL=https://your-subdomain-name.ngrok.io
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=ABCDEFGHIJKLMNOPQRST
-#AWS_SECRET_ACCESS_KEY=aaGFHJHG457kJH++kljsdgIKLHJFD786sdghDFKL
+AWS_SECRET_ACCESS_KEY=aaGFHJHG457kJH++kljsdgIKLHJFD786sdghDFKL
 ```
 
 - Start your server and make note of the information it prints out:
