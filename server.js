@@ -133,7 +133,7 @@ server.get('/viewData', async (req, res) => {
 	const data = req.session.smartThings
 
 	// Read the context from DynamoDB so that API calls can be made
-	const ctx = await apiApp.withContext(data.installedAppId)
+	const ctx = await apiApp.withContext(data)
 	try {
 		// Get the list of switch devices, which doesn't include the state of the switch
 		const deviceList = await ctx.api.devices.findByCapability('switch')
@@ -172,7 +172,7 @@ server.get('/viewData', async (req, res) => {
  */
 server.get('/logout', async function(req, res) {
 	// Read the context from DynamoDB so that API calls can be made
-	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
+	const ctx = await apiApp.withContext(req.session.smartThings)
 
 	// Delete the installed app instance from SmartThings
 	await ctx.api.installedApps.deleteInstalledApp()
@@ -203,7 +203,9 @@ server.get('/oauth/callback', async (req, res) => {
 	req.session.smartThings = {
 		locationId: ctx.locationId,
 		locationName: location.name,
-		installedAppId: ctx.installedAppId
+		installedAppId: ctx.installedAppId,
+		authToken: ctx.event.authToken,
+		refreshToken: ctx.event.refreshToken
 	}
 
 	// Redirect back to the main page
@@ -216,7 +218,7 @@ server.get('/oauth/callback', async (req, res) => {
  */
 server.post('/command/:deviceId', async(req, res) => {
 	// Read the context from DynamoDB so that API calls can be made
-	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
+	const ctx = await apiApp.withContext(req.session.smartThings)
 
 	// Execute the device command
 	await ctx.api.devices.postCommands(req.params.deviceId, req.body.commands)
