@@ -1,10 +1,11 @@
 let viewModel
 let eventSource
 $( document ).ready(function() {
+	viewModel = new ViewModel();
+	ko.applyBindings(viewModel);
 	$.get('/viewData', function(viewData) {
 		console.log(`viewData=${JSON.stringify(viewData,null,2)}`)
-		viewModel = new ViewModel(viewData);
-		ko.applyBindings(viewModel);
+		viewModel.initialize(viewData);
 
 		console.log('Opening SSE connection')
 		eventSource = new EventSource('/events');

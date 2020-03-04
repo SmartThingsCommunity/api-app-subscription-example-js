@@ -135,28 +135,33 @@ server.get('/viewData', async (req, res) => {
 	// Read the context from DynamoDB so that API calls can be made
 	const ctx = await apiApp.withContext(data.installedAppId)
 	try {
-		const ops = await ctx.api.devices.findByCapability('switch').then(data => {
-			return data.items.map(it => {
-				return ctx.api.devices.getCapabilityState(it.deviceId, 'main', 'switch').then(state => {
-					return {
-						deviceId: it.deviceId,
-						label: it.label,
-						switchState: state.switch.value
-					}
-				})
+		// Get the list of switch devices, which doesn't include the state of the switch
+		const deviceList = await ctx.api.devices.findByCapability('switch')
+
+		// Query for the state of each one
+		const ops = deviceList.items.map(it => {
+			return ctx.api.devices.getCapabilityState(it.deviceId, 'main', 'switch').then(state => {
+				return {
+					deviceId: it.deviceId,
+					label: it.label,
+					switchState: state.switch.value
+				}
 			})
 		})
-		let devices = await Promise.all(ops)
-		devices = await Promise.all(ops)
-		res.send({
-			errorMessage: '',
+
+		// Wait for all those queries to complete
+		const devices = await Promise.all(ops)
+
+		// Respond to the request
+	res.send({
+			errorMessage: devices.length > 0 ? '' : 'No switch devices found in location',
 			devices: devices.sort( (a, b) => {
 				return a.label === b.label ? 0 : (a.label > b.label) ? 1 : -1
 			})
 		})
 	} catch (error) {
 		res.send({
-			errorMessage: `${error.message}`,
+			errorMessage: `${error.message || error}`,
 			devices: []
 		})
 	}

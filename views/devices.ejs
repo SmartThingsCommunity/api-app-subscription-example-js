@@ -19,9 +19,14 @@
             <h1><%= locationName %></h1>
         </div>
     </div>
+    <div class="row" data-bind="hidden: initialized">
+        <div class="col-lg-12">
+            <p>Loading switches from location <img src="/images/spinner.gif"></p>
+        </div>
+    </div>
     <div class="row">
         <div class="col-lg-12">
-            <p data-bind="text: errorMessage"></p>
+            <p class="errorMessage" data-bind="text: errorMessage"></p>
         </div>
     </div>
     <div class="row">
