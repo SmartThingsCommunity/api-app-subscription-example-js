@@ -11,7 +11,7 @@ const DynamoDBStore = require('dynamodb-store');
 const DynamoDBContextStore = require('@smartthings/dynamodb-context-store')
 const SSE = require('express-sse')
 
-const port = process.env.PORT
+const port = process.env.PORT || 3000
 const appId = process.env.APP_ID
 const clientId = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
@@ -232,5 +232,6 @@ server.get('/events', sse.init);
  * URL in the API app definition using the SmartThings Developer Workspace.
  */
 server.listen(port);
-console.log(`\nWebsite URL -- Use this URL to log into SmartThings and connect this app to your account:\n${serverUrl}\n`);
-console.log(`Redirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Worspace:\n${redirectUri}`);
+console.log(`\nRedirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Worspace:\n${redirectUri}`);
+console.log(`\nTarget URL -- Use this URL to log into SmartThings and connect this app to your account:\n${serverUrl}\n`);
+

@@ -43,11 +43,11 @@ Submit requests for approval using
 (though that option has not been tested with this app)
 
 ## Instructions
-- Clone [this GitHub repository](https://github.com/SmartThingsCommunity/api-app-minimal-example-js), cd into the
+- Clone [this GitHub repository](https://github.com/SmartThingsCommunity/api-app-subscription-example-js), cd into the
 directory, and install the Node modules with NPM:
 ```$bash
-git clone https://github.com/SmartThingsCommunity/api-app-minimal-example-js.git
-cd api-app-minimal-example-js
+git clone https://github.com/SmartThingsCommunity/api-app-subscription-example-js.git
+cd api-app-subscription-example-js
 npm install
 ```
 
@@ -58,18 +58,18 @@ DynamoDB table is to be created (you can also configure AWS region and credentia
 SERVER_URL=https://your-subdomain-name.ngrok.io
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=ABCDEFGHIJKLMNOPQRST
-#AWS_SECRET_ACCESS_KEY=aaGFHJHG457kJH++kljsdgIKLHJFD786sdghDFKL
+AWS_SECRET_ACCESS_KEY=aaGFHJHG457kJH++kljsdgIKLHJFD786sdghDFKL
 ```
 
 - Start your server and make note of the information it prints out:
 ```$bash
 node server.js
 
-Website URL -- Use this URL to log into SmartThings and connect this app to your account:
-https://your-subdomain-name.ngrok.io
-
 Redirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Workspace:
 https://your-subdomain-name.ngrok.io/oauth/callback
+
+Target URL -- Use this URL to log into SmartThings and connect this app to your account:
+https://your-subdomain-name.ngrok.io
 ```
 
 - Go to the [SmartThings Developer Workspace](https://smartthings.developer.samsung.com/workspace) and create an new
@@ -77,9 +77,23 @@ https://your-subdomain-name.ngrok.io/oauth/callback
 If the previous link doesn't work and you don't see an option for creating an API Access project, then your access
 has not yet been approved. 
 
-- After creating the project click the Use the _Register an Application_ link and fill in the fields, and click _Save_. 
-Use the _Redirect URI_ value printed out in the server log and specify the 
-`r:locations:*`, `r:devices:*`, and `x:devices:*` scopes.
+- After creating the project click the _Register an Application_ link and fill in the fields using the _Redirect URI_ 
+and _Target URI_ values from your server logs. Click _Save_. 
+
+- On the next page select the `r:locations:*`, `r:devices:*`, and `x:devices:*` scopes and click _Save_.
+
+- Look in you server logs for a link similar to this one:
+```.env
+CONFIRMATION request for app f9a665e7-5a76-4b1e-bdfe-31135eccc2f3, to enable events visit 
+https://api.smartthings.com/apps/f9a665e7-5a76-4b1e-bdfe-31135eccc2f3/confirm-registration?token=fd95...
+```
+- Paste this link into a browser or request it with a utility like curl to enable callbacks to your app. The response should contain the
+_targetURL_ value you entered in the dev workspace, for example:
+```.env
+{
+    targetUrl: "https://your-subdomain-name.ngrok.io"
+}
+```
 
 - Add the _APP_ID_, _CLIENT_ID_ and _CLIENT_SECRET_ properties from the Developer Workspace to your `.env` file. 
 For example:
@@ -92,62 +106,6 @@ CLIENT_SECRET=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
 - Restart your server:
 ```$bash
 node server.js
-```
-
-- Since this app will be subscribing to device event callback from the SmartThings platform, you need to define a URL 
-to receive those callbacks. The Developer Workspace currently doesn't have that functionality, but you set that URL using
-the SmartThings API. To do so:
-
-  - Get a personal token with at least `r:apps` and`w:apps` scope from [https://account.smartthings.com/tokens](https://account.smartthings.com/tokens)
-  
-  - Save the current definition for you app by running the following command, substituting your PAT_TOKEN and APP_ID. You can
-    get your APP_ID from the Developer Workspace
-    ```$bash
-        curl -H "Authorization: Bearer {PAT_TOKEN}" \
-             https://api.smartthings.com/apps/{APP_ID} > app.json
-    ```
-    
-    - Edit the `app.json` file to add the `targetUrl` property with the value `https://your-subdomain-name.ngrok.io` 
-    to the `apiOnly` section. The result should look something like this:
-    ```$bash
-    {
-      "appName": "api-app-subscription-test-1571704633875-935",
-      "appId": "c5a19a9b-2d88-40e6-9c55-ad177c5db73d",
-      "appType": "API_ONLY",
-      "principalType": "LOCATION",
-      "classifications": [
-        "CONNECTED_SERVICE"
-      ],
-      "displayName": "api-app-subscription-test",
-      "description": "Description",
-      "singleInstance": false,
-      "installMetadata": {
-        "certified": "false",
-        "maxInstalls": "50"
-      },
-      "owner": {
-        "ownerType": "USER",
-        "ownerId": "c257d2c7-332b-d60d-808d-12345678abcd"
-      },
-      "createdDate": "2019-10-22T00:37:14Z",
-      "lastUpdatedDate": "2019-10-22T00:37:15Z",
-      "apiOnly": {
-        "targetUrl": "https://your-subdomain-name.ngrok.io"
-      },
-      "ui": {
-        "pluginUri": "",
-        "dashboardCardsEnabled": false,
-        "preInstallDashboardCardsEnabled": false
-      }
-    }
-    ```
-- Update the app to add the targetUrl with the following command. Make sure that your server is running 
-when you run the command, as the platform will call it to confirm the target URL.
-```$bash
-curl -X PUT -H "Authorization: Bearer {PAT_TOKEN}" \
-      -d @app.json \
-      https://api.smartthings.com/apps/{APP_ID}
-
 ```
 
 - Go to webside URL from the server log, log in with your SmartThings account credentials, and 
