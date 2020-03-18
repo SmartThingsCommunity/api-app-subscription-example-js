@@ -18,6 +18,10 @@
         <div class="col-lg-12">
             <h1><%= locationName %></h1>
         </div>
+        <div class="col-lg-12 ">
+            <a data-bind="click: allOn" class="control">All On</a>
+            <a data-bind="click: allOff" class="control">All Off</a>
+        </div>
     </div>
     <div class="row" data-bind="hidden: initialized">
         <div class="col-lg-12">
@@ -36,7 +40,7 @@
                       <span class="deviceControl" data-bind="class: tileState">
                         <span class="deviceStatus" data-bind="text: switchState"></span>
                       </span>
-                      <span class="displayName" data-bind="text: label"></span>
+                    <span class="displayName" data-bind="text: label"></span>
                 </div>
             </div>
         </div>

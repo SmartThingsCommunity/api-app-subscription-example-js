@@ -136,11 +136,11 @@ server.get('/viewData', async (req, res) => {
 	const ctx = await apiApp.withContext(data.installedAppId)
 	try {
 		// Get the list of switch devices, which doesn't include the state of the switch
-		const deviceList = await ctx.api.devices.findByCapability('switch')
+		const deviceList = await ctx.api.devices.list({capability: 'switch'})
 
 		// Query for the state of each one
-		const ops = deviceList.items.map(it => {
-			return ctx.api.devices.getCapabilityState(it.deviceId, 'main', 'switch').then(state => {
+		const ops = deviceList.map(it => {
+			return ctx.api.devices.getCapabilityStatus(it.deviceId, 'main', 'switch').then(state => {
 				return {
 					deviceId: it.deviceId,
 					label: it.label,
@@ -171,20 +171,21 @@ server.get('/viewData', async (req, res) => {
  * Logout. Uninstalls app and clears context cookie
  */
 server.get('/logout', async function(req, res) {
-	// Read the context from DynamoDB so that API calls can be made
-	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
-
-	// Delete the installed app instance from SmartThings
 	try {
-		await ctx.api.installedApps.deleteInstalledApp()
-	} catch (error) {
-		console.log(`Error deleting app ${error}`)
-	}
+		// Read the context from DynamoDB so that API calls can be made
+		const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
 
-	// Delete the session data
-	req.session.destroy(err => {
+		// Delete the installed app instance from SmartThings
+		await ctx.api.installedApps.delete()
+
+		// Delete the session data
+		req.session.destroy(err => {
+			res.redirect('/')
+		})
+	}
+	catch (error) {
 		res.redirect('/')
-	})
+	}
 })
 
 /*
@@ -224,6 +225,25 @@ server.post('/command/:deviceId', async(req, res) => {
 
 	// Execute the device command
 	await ctx.api.devices.postCommands(req.params.deviceId, req.body.commands)
+	res.send({})
+});
+
+
+/**
+ * Executes a command for all devices
+ */
+server.post('/commands', async(req, res) => {
+	console.log(JSON.stringify(req.body.commands, null, 2))
+	// Read the context from DynamoDB so that API calls can be made
+	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
+
+	const devices = await ctx.api.devices.findByCapability('switch')
+	const ops = []
+	for (const device of devices) {
+		ops.push(ctx.api.devices.postCommands(device.deviceId, req.body.commands))
+	}
+	await Promise.all(ops)
+
 	res.send({})
 });
 

@@ -7,7 +7,11 @@ const ViewModel = function () {
 	this.initialized = ko.observable()
 
 	this.updateDevice = function(deviceId, switchState) {
-		self.deviceMap[deviceId].switchState(switchState)
+		if (self.deviceMap[deviceId]) {
+			self.deviceMap[deviceId].switchState(switchState)
+		} else {
+			log.console(`Device ${deviceId} not found`)
+		}
 	}
 
 	this.initialize = function(viewData) {
@@ -18,5 +22,37 @@ const ViewModel = function () {
 		}
 		self.initialized(true)
 		self.errorMessage(viewData.errorMessage)
+	}
+
+	this.allOn = function() {
+		self.setSwitch('on')
+	}
+
+	this.allOff = function() {
+		self.setSwitch('off')
+	}
+
+	this.setSwitch = function(value) {
+		const params = {
+			commands: [
+				{
+					componentId: 'main',
+					capability: 'switch',
+					command: value,
+					argumemnts: []
+				}
+			]
+		};
+
+		$.ajax({
+			type: "POST",
+			url: `/commands`,
+			data: JSON.stringify(params),
+			dataType: 'json',
+			contentType: "application/json; charset=utf-8",
+			success: function (data) {
+				//self.switchState(newValue);
+			}
+		});
 	}
 };

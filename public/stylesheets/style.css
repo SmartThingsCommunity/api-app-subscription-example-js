@@ -128,3 +128,7 @@ form.login input.btn {
 .btn-secondary {
     width: 100%;
 }
+.control {
+    margin-right: 20px;
+    cursor: pointer;
+}
