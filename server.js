@@ -257,6 +257,7 @@ server.get('/events', sse.init);
  * URL in the API app definition using the SmartThings Developer Workspace.
  */
 server.listen(port);
-console.log(`\nRedirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Worspace:\n${redirectUri}`);
-console.log(`\nTarget URL -- Use this URL to log into SmartThings and connect this app to your account:\n${serverUrl}\n`);
+console.log(`\nWebsite URL -- Use this URL to log into SmartThings and connect this app to your account:\n${serverUrl}\n`);
+console.log(`Redirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Workspace:\n${redirectUri}`);
+
 
