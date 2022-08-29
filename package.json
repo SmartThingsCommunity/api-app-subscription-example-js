@@ -10,7 +10,7 @@
     "aws-sdk": "^2.485.0",
     "dotenv": "^8.2.0",
     "dynamodb-store": "^1.0.8",
-    "ejs": "~3.1.5",
+    "ejs": "~3.1.7",
     "encodeurl": "^1.0.2",
     "express": "~4.17.1",
     "express-session": "^1.17.1",
