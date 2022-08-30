@@ -5,20 +5,17 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
-    "@smartthings/dynamodb-context-store": "^2.1.0",
-    "@smartthings/smartapp": "^2.5.0",
-    "aws-sdk": "^2.814.0",
-    "dotenv": "^8.2.0",
+    "@smartthings/dynamodb-context-store": "^2.1.1",
+    "@smartthings/smartapp": "^3.0.0dotenv",
+    "aws-sdk": "^2.485.0",
+    "dotenv": "^16.0.1",
     "dynamodb-store": "^1.0.8",
-    "ejs": "~3.1.7",
+    "ejs": "~3.1.8",
     "encodeurl": "^1.0.2",
-    "express": "~4.17.1",
-    "express-session": "^1.17.1",
+    "express": "~4.18.1",
+    "express-session": "^1.17.3",
     "express-sse": "^0.5.3",
-    "http-signature": "^1.1.1",
     "morgan": "~1.10.0",
-    "request": "^2.88.0",
-    "request-promise-native": "^1.0.7",
     "sshpk": "^1.15.2"
   }
 }
