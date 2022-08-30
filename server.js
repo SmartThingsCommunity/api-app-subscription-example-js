@@ -87,6 +87,12 @@ server.use(express.json())
 server.use(express.urlencoded({extended: false}))
 server.use(express.static(path.join(__dirname, 'public')))
 
+// Needed to avoid flush error with express-sse and newer versions of Node
+server.use(function (req, res, next) {
+	res.flush = function () { /* Do nothing */ }
+	next();
+})
+
 /*
  * Handles calls to the SmartApp from SmartThings, i.e. registration challenges and device events
  */
@@ -179,7 +185,7 @@ server.get('/logout', async function(req, res) {
 		await ctx.api.installedApps.delete()
 
 		// Delete the session data
-		req.session.destroy(err => {
+		req.session.destroy(() => {
 			res.redirect('/')
 		})
 	}
@@ -198,7 +204,7 @@ server.get('/oauth/callback', async (req, res) => {
 	const ctx = await apiApp.handleOAuthCallback(req)
 
 	// Remove any existing subscriptions and ubscribe to device switch events
-	await ctx.api.subscriptions.unsubscribeAll()
+	await ctx.api.subscriptions.delete()
 	await ctx.api.subscriptions.subscribeToCapability('switch', 'switch', 'switchHandler');
 
 	// Get the location name (for display on the web page)
