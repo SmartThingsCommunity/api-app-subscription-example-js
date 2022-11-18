@@ -69,6 +69,12 @@ server.use(express.json())
 server.use(express.urlencoded({extended: false}))
 server.use(express.static(path.join(__dirname, 'public')))
 
+// Needed to avoid flush error with express-sse and newer versions of Node
+server.use(function (req, res, next) {
+	res.flush = function () { /* Do nothing */ }
+	next();
+})
+
 /*
  * Handles calls to the SmartApp from SmartThings, i.e. registration challenges and device events
  */
@@ -233,6 +239,9 @@ server.get('/events', sse.init);
  * URL in the API app definition using the SmartThings Developer Workspace.
  */
 server.listen(port);
-console.log(`\nRedirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Worspace:\n${redirectUri}`);
-console.log(`\nTarget URL -- Use this URL to log into SmartThings and connect this app to your account:\n${serverUrl}\n`);
+console.log(`\nWebsite URL -- Use this URL to log into SmartThings and connect this app to your account:\n${serverUrl}\n`);
+console.log(`Redirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Workspace:\n${redirectUri}`);
+console.log(`Target URL -- Use this URL to log into SmartThings and connect this app to your account:\n${serverUrl}\n`);
+
+
 
