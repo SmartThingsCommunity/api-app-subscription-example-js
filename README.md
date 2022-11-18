@@ -29,18 +29,16 @@ production use. There are alternative storage mechanisms for DynamoDB and Fireba
 
 ### Prerequisites
 - A [SmartThings](https://smartthings.com) account
-
 - The [SmartThings CLI](https://github.com/SmartThingsCommunity/smartthings-cli#readme) installed
-
 - [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs.com/) installed
+- [ngrok](https://ngrok.com/) or similar tool to create a secure tunnel to a publicly available URL
 
-- [ngrok](https://ngrok.com/) or similar tool to create a secure tunnel to a publically available URL
-
+Note that as an alternative to running the app locally you can use [Glitch](glitch.com) to host your app.
 ## Instructions
 
 ### 1. Set up your server
 
-#### When running locally and tunneling using ngrok or similar tool
+#### If running locally and tunneling using ngrok or similar tool
 Clone [this GitHub repository](https://github.com/SmartThingsCommunity/api-app-subscription-example-js), cd into the
 directory, and install the Node modules with NPM:
 ```
@@ -60,9 +58,10 @@ Start your server and make note of the information it prints out:
 node server.js
 ```
 
-#### When using Glitch
+#### If using Glitch
 
-Remix this Glitch project: [midnight-cloudy-sceptre](https://glitch.com/edit/#!/midnight-cloudy-sceptre)
+Remix this Glitch project: [midnight-cloudy-sceptre](https://glitch.com/edit/#!/midnight-cloudy-sceptre) and wait for
+the server to start.
 
 ### 2. Register your SmartThings app
 
@@ -79,7 +78,7 @@ https://node-st.ngrok.io
 ```
 
 Create a file like this one, replacing the specified information in double curly brackets {{}}. 
-The `appName` needs to be some unique name with lower-case letters, numbers, and dashes.
+The `appName` needs to be some unique name with lower-case letters, numbers, and dashes and no spaces.
 ```json
 {
   "appName": "{{SOME UNIQUE NAME YOU CHOOSE}}",
@@ -113,13 +112,14 @@ smartthings apps:create -i app.json
 Save the output of the create command for later use. It contains the client ID and secret of your app. You
 won't be able to see those values again.
 
-After running the create command look at your server logs for a link similar to this one:
+After running the create command look at your server logs for a line similar to this one:
 ```
 CONFIRMATION request for app f9a665e7-5a76-4b1e-bdfe-31135eccc2f3, to enable events visit 
 https://api.smartthings.com/apps/f9a665e7-5a76-4b1e-bdfe-31135eccc2f3/confirm-registration?token=fd95...
 ```
 
-Paste the URL into a browser or request it with a utility like curl to enable callbacks to your app. The response should contain the
+Paste the URL into a browser or request it with a utility like curl to enable callbacks to your app. 
+The response should contain the
 _targetURL_ value from your app creation request, for example:
 ```
 {
