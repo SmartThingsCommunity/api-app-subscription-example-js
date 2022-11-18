@@ -1,59 +1,32 @@
-'use strict';
-
 require('dotenv').config();
-const express = require('express')
-const session = require("express-session");
 const path = require('path')
+const express = require('express')
+const cookieSession = require('cookie-session')
 const logger = require('morgan')
 const encodeUrl = require('encodeurl')
-const SmartApp = require('@smartthings/smartapp')
-const DynamoDBStore = require('dynamodb-store');
-const DynamoDBContextStore = require('@smartthings/dynamodb-context-store')
 const SSE = require('express-sse')
+const FileContextStore = require('@smartthings/file-context-store')
+const SmartApp = require('@smartthings/smartapp')
 
 const port = process.env.PORT || 3000
 const appId = process.env.APP_ID
 const clientId = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
-const tableName = process.env.DYNAMODB_TABLE || 'api-app-subscription-example'
-const serverUrl = process.env.SERVER_URL || `https://${process.env.PROJECT_DOMAIN}.glith.me`
+const serverUrl = process.env.SERVER_URL || `https://${process.env.PROJECT_DOMAIN}.glitch.me`
 const redirectUri =  `${serverUrl}/oauth/callback`
 const scope = encodeUrl('r:locations:* r:devices:* x:devices:*');
-
-if (!process.env.AWS_REGION && !process.env.AWS_PROFILE) {
-	console.log('\n***************************************************************************')
-	console.log('*** Please add AWS_REGION, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY ***')
-	console.log('*** entries to the .env file to run the server                          ***')
-	console.log('***************************************************************************')
-	return
-}
 
 /*
  * Server-sent events. Used to update the status of devices on the web page from subscribed events
  */
 const sse = new SSE()
 
-/*
- * Persistent storage of session data in DynamoDB. Table will be automatically created if it doesn't already exist.
+/**
+ * Stores access tokens and other properties for calling the SmartThings API. This implementation is a simple flat file
+ * store that is for demo purposes not appropriate for production systems. Other context stores exist, including
+ * DynamoDB and Firebase.
  */
-const sessionStore = new DynamoDBStore({
-	table: {
-		name: tableName,
-		hashKey : "id"
-	}
-})
-
-/*
- * Persistent storage of SmartApp tokens and configuration data in a dynamo DB table. Uses the same table as the
- * session store. The auto-create feature is disabled to avoid duplicate table creation attempts.
- */
-const contextStore = new DynamoDBContextStore({
-	table: {
-		name: tableName,
-		hashKey : "id"
-	},
-	autoCreate: false
-});
+const contextStore = new FileContextStore('data')
 
 /*
  * Thew SmartApp. Provides an API for making REST calls to the SmartThings platform and
@@ -65,13 +38,18 @@ const apiApp = new SmartApp()
 	.clientSecret(clientSecret)
 	.contextStore(contextStore)
 	.redirectUri(redirectUri)
+	.enableEventLogging(2)
 	.subscribedEventHandler('switchHandler', async (ctx, event) => {
 		/* Device event handler. Current implementation only supports main component switches */
 		if (event.componentId === 'main') {
-			sse.send({
-				deviceId: event.deviceId,
-				switchState: event.value
-			})
+			try {
+				sse.send({
+					deviceId: event.deviceId,
+					switchState: event.value
+				})
+			} catch(e) {
+				console.log(e.message)
+			}
 		}
 		console.log(`EVENT ${event.deviceId} ${event.componentId}.${event.capability}.${event.attribute}: ${event.value}`)
 	})
@@ -81,6 +59,10 @@ const apiApp = new SmartApp()
  */
 const server = express()
 server.set('views', path.join(__dirname, 'views'))
+server.use(cookieSession({
+	name: 'session',
+	keys: ['key1', 'key2']
+}))
 server.set('view engine', 'ejs')
 server.use(logger('dev'))
 server.use(express.json())
@@ -93,18 +75,6 @@ server.use(express.static(path.join(__dirname, 'public')))
 server.post('/', async (req, res) => {
 	apiApp.handleHttpCallback(req, res);
 })
-
-/*
- * Session middleware. Defined here so that it isn't used by the callback method, which would create lots of
- * unnecessary sessions.
- */
-server.use(session({
-	store: sessionStore,
-	secret: "api example secret",
-	resave: false,
-	saveUninitialized: true,
-	cookie: {secure: false}
-}))
 
 /*
  * Main web page. Shows link to SmartThings if not authenticated and list of switch devices afterwards
@@ -179,9 +149,8 @@ server.get('/logout', async function(req, res) {
 		await ctx.api.installedApps.delete()
 
 		// Delete the session data
-		req.session.destroy(err => {
-			res.redirect('/')
-		})
+		req.session = null
+		res.redirect('/')
 	}
 	catch (error) {
 		res.redirect('/')
@@ -191,41 +160,48 @@ server.get('/logout', async function(req, res) {
 /*
  * Handles OAuth redirect
  */
-server.get('/oauth/callback', async (req, res) => {
+server.get('/oauth/callback', async (req, res, next) => {
 
-	// Store the SmartApp context including access and refresh tokens. Returns a context object for use in making
-	// API calls to SmartThings
-	const ctx = await apiApp.handleOAuthCallback(req)
+	try {
+		// Store the SmartApp context including access and refresh tokens. Returns a context object for use in making
+		// API calls to SmartThings
+		const ctx = await apiApp.handleOAuthCallback(req)
 
-	// Remove any existing subscriptions and ubscribe to device switch events
-	await ctx.api.subscriptions.unsubscribeAll()
-	await ctx.api.subscriptions.subscribeToCapability('switch', 'switch', 'switchHandler');
+		// Get the location name (for display on the web page)
+		const location = await ctx.api.locations.get(ctx.locationId)
 
-	// Get the location name (for display on the web page)
-	const location = await ctx.api.locations.get(ctx.locationId)
+		// Set the cookie with the context, including the location ID and name
+		req.session.smartThings = {
+			locationId: ctx.locationId,
+			locationName: location.name,
+			installedAppId: ctx.installedAppId
+		}
 
-	// Set the cookie with the context, including the location ID and name
-	req.session.smartThings = {
-		locationId: ctx.locationId,
-		locationName: location.name,
-		installedAppId: ctx.installedAppId
+		// Remove any existing subscriptions and unsubscribe to device switch events
+		await ctx.api.subscriptions.delete()
+		await ctx.api.subscriptions.subscribeToCapability('switch', 'switch', 'switchHandler');
+
+		// Redirect back to the main page
+		res.redirect('/')
+	} catch (error) {
+		next(error)
 	}
-
-	// Redirect back to the main page
-	res.redirect('/')
-
 })
 
 /**
  * Executes a device command from the web page
  */
-server.post('/command/:deviceId', async(req, res) => {
-	// Read the context from DynamoDB so that API calls can be made
-	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
+server.post('/command/:deviceId', async(req, res, next) => {
+	try {
+		// Read the context from DynamoDB so that API calls can be made
+		const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
 
-	// Execute the device command
-	await ctx.api.devices.postCommands(req.params.deviceId, req.body.commands)
-	res.send({})
+		// Execute the device command
+		await ctx.api.devices.executeCommands(req.params.deviceId, req.body.commands)
+		res.send({})
+	} catch (error) {
+		next(error)
+	}
 });
 
 
@@ -237,10 +213,10 @@ server.post('/commands', async(req, res) => {
 	// Read the context from DynamoDB so that API calls can be made
 	const ctx = await apiApp.withContext(req.session.smartThings.installedAppId)
 
-	const devices = await ctx.api.devices.findByCapability('switch')
+	const devices = await ctx.api.devices.list({capability: 'switch'})
 	const ops = []
 	for (const device of devices) {
-		ops.push(ctx.api.devices.postCommands(device.deviceId, req.body.commands))
+		ops.push(ctx.api.devices.executeCommands(device.deviceId, req.body.commands))
 	}
 	await Promise.all(ops)
 

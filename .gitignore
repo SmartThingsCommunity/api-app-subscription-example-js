@@ -62,3 +62,5 @@ typings/
 .next
 
 .DS_Store
+
+data/*.json
