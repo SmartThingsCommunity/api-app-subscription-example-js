@@ -5,13 +5,11 @@
 This NodeJS Express application illustrates how to create an _API Access_ SmartApp that connects to your SmartThings
 account with OAuth2 to control devices and subscribe to device events. The application uses the 
 [SmartThings SmartApp](https://www.npmjs.com/package/@smartthings/smartapp) SDK NPM module for making the
-API calls to control switch devices and subscribe to switch events. The app create a web page that displays
+API calls to control switch devices and subscribe to switch events. The app creates a web page that displays
 the state of all switches in a location and allows those switches to be turned on and off.
 
-API access tokens and web session state are stored in [AWS DynamoDB](https://aws.amazon.com/dynamodb/), so you will
-need an AWS account to run the app as it is written. The app uses the 
-SmartThings [dynamodb-context-store](https://www.npmjs.com/package/@smartthings/dynamodb-context-store) to store
-the API tokens and the [dynamodb-store)](https://www.npmjs.com/package/dynamodb-store) for storing session state.
+API access tokens and web session state are stored local files. This storage mechanism is not suitable for
+production use. There are alternative storage mechanisms for DynamoDB and Firebase.
 
 ## Files and directories 
 
@@ -24,91 +22,131 @@ the API tokens and the [dynamodb-store)](https://www.npmjs.com/package/dynamodb-
   - error.ejs -- error page
   - index.ejs -- initial page with link to connect to SmartThings
 - server.js -- the Express server and SmartApp
-- .env -- file you create with AWS and app credentials
+- .env -- file you create with app credentials
+- package.json -- The Node.js package file
 
 ## Getting Started
 
 ### Prerequisites
-- A [Samsung Developer Workspace account](https://smartthings.developer.samsung.com/workspace/) with _API Access_ app approval. 
-Submit requests for approval using
-[this form](https://smartthings.developer.samsung.com/oauth-request)
+- A [SmartThings](https://smartthings.com) account
+
+- The [SmartThings CLI](https://github.com/SmartThingsCommunity/smartthings-cli#readme) installed
 
 - [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs.com/) installed
 
 - [ngrok](https://ngrok.com/) or similar tool to create a secure tunnel to a publically available URL
 
-- [AWS Account](https://aws.amazon.com) for hosting 
-[DynamoDB](https://docs.aws.amazon.com/dynamodb/index.html) database or 
-[local DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) instance 
-(though that option has not been tested with this app)
-
 ## Instructions
-- Clone [this GitHub repository](https://github.com/SmartThingsCommunity/api-app-subscription-example-js), cd into the
+
+### 1. Set up your server
+
+#### When running locally and tunneling using ngrok or similar tool
+Clone [this GitHub repository](https://github.com/SmartThingsCommunity/api-app-subscription-example-js), cd into the
 directory, and install the Node modules with NPM:
-```$bash
+```
 git clone https://github.com/SmartThingsCommunity/api-app-subscription-example-js.git
 cd api-app-subscription-example-js
 npm install
 ```
 
-- Create a file named `.env` in the project directory and set the base URL of the server to your ngrok URL 
-(or the URL you configured in your local hosts file), your AWS credentials, and the AWS region where the
-DynamoDB table is to be created (you can also configure AWS region and credentials in other ways). For example:
-```$bash
+Create a file named `.env` in the project directory and set the base URL of the server to your ngrok URL,
+For example:
+```
 SERVER_URL=https://your-subdomain-name.ngrok.io
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=ABCDEFGHIJKLMNOPQRST
-AWS_SECRET_ACCESS_KEY=aaGFHJHG457kJH++kljsdgIKLHJFD786sdghDFKL
 ```
 
-- Start your server and make note of the information it prints out:
-```$bash
+Start your server and make note of the information it prints out:
+```
 node server.js
-
-Redirect URI -- Copy this value into the "Redirection URI(s)" field in the Developer Workspace:
-https://your-subdomain-name.ngrok.io/oauth/callback
-
-Target URL -- Use this URL to log into SmartThings and connect this app to your account:
-https://your-subdomain-name.ngrok.io
 ```
 
-- Go to the [SmartThings Developer Workspace](https://smartthings.developer.samsung.com/workspace) and create an new
-[API Access](https://smartthings.developer.samsung.com/workspace/projects/new?type=CPT-OAUTH) project in your organization.
-If the previous link doesn't work and you don't see an option for creating an API Access project, then your access
-has not yet been approved. 
+#### When using Glitch
 
-- After creating the project click the _Register an Application_ link and fill in the fields using the _Redirect URI_ 
-and _Target URI_ values from your server logs. Click _Save_. 
+Remix this Glitch project: [midnight-cloudy-sceptre](https://glitch.com/edit/#!/midnight-cloudy-sceptre)
 
-- On the next page select the `r:locations:*`, `r:devices:*`, and `x:devices:*` scopes and click _Save_.
+### 2. Register your SmartThings app
 
-- Look in you server logs for a link similar to this one:
-```.env
+Look at the log output of your local server or Glitch app. You should see something like this:
+```
+Target URL -- Copy this value into the targetUrl field of you app creation request:
+https://node-st.ngrok.io
+
+Redirect URI -- Copy this value into redirectUris field of your app creation request:
+https://node-st.ngrok.io/oauth/callback
+
+Website URL -- Visit this URL in your browser to log into SmartThings and connect your account:
+https://node-st.ngrok.io
+```
+
+Create a file like this one, replacing the specified information in double curly brackets {{}}. 
+The `appName` needs to be some unique name with lower-case letters, numbers, and dashes.
+```json
+{
+  "appName": "{{SOME UNIQUE NAME YOU CHOOSE}}",
+  "appType": "API_ONLY",
+  "classifications": [
+    "CONNECTED_SERVICE"
+  ],
+  "displayName": "{{THE NAME OF YOUR APP}}",
+  "description": "{{A DESCRIPTION OF YOUR APP}}",
+  "singleInstance": true,
+  "apiOnly": {
+    "targetUrl": "{{TARGET URL FROM THE ABOVE LOG OUTPUT}}"
+  },
+  "oauth": {
+    "clientName": "{{THE NAME OF YOUR APP ON THE OAUTH PAGE}}",
+    "scope": [
+      "r:locations:*",
+      "r:scenes:*",
+      "x:scenes:*"
+    ],
+    "redirectUris": ["{{REDIRECT URL FROM ABOVE LOG OUTPUT}}"]
+  }
+}
+```
+
+Create the app using the SmartThings CLI. For example, if your file is named `app.json` run this command:
+```
+smartthings apps:create -i app.json
+```
+
+Save the output of the create command for later use. It contains the client ID and secret of your app. You
+won't be able to see those values again.
+
+After running the create command look at your server logs for a link similar to this one:
+```
 CONFIRMATION request for app f9a665e7-5a76-4b1e-bdfe-31135eccc2f3, to enable events visit 
 https://api.smartthings.com/apps/f9a665e7-5a76-4b1e-bdfe-31135eccc2f3/confirm-registration?token=fd95...
 ```
-- Paste this link into a browser or request it with a utility like curl to enable callbacks to your app. The response should contain the
-_targetURL_ value you entered in the dev workspace, for example:
-```.env
+
+Paste the URL into a browser or request it with a utility like curl to enable callbacks to your app. The response should contain the
+_targetURL_ value from your app creation request, for example:
+```
 {
     targetUrl: "https://your-subdomain-name.ngrok.io"
 }
 ```
 
-- Add the _APP_ID_, _CLIENT_ID_ and _CLIENT_SECRET_ properties from the Developer Workspace to your `.env` file. 
-For example:
-```$bash
-APP_ID=aaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa
-CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
-CLIENT_SECRET=xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
+### 3. Update and restart your server
+
+Add the _APP_ID_, _CLIENT_ID_ and _CLIENT_SECRET_ properties from `apps:create` command 
+response to your `.env` file:
+```
+APP_ID={{RESPONSE appId FIELD VALUE}}
+CLIENT_ID={{RESPONSE oauthClientId FIELD VALUE}}
+CLIENT_SECRET={{RESPONSE oauthClientSecret FIELD VALUE}}
 ```
 
-- Restart your server:
-```$bash
+Restart your server:
+```
 node server.js
 ```
 
-- Go to webside URL from the server log, log in with your SmartThings account credentials, and 
+Note that if you are using Glitch your server will restart automatically when you edit the `.env` file.
+
+### 4. Log into SmartThings
+
+Go to Website URL from the server log in a browser, log in with your SmartThings account credentials, and 
 choose a location. You should see a page listing all devices in that location with the _switch_
 capability. Tapping the device on the page should turn the switch on and off. You should also see
 the states of the switches on the page change when you turn them on and off with the SmartThings
