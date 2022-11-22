@@ -96,8 +96,8 @@ The `appName` needs to be some unique name with lower-case letters, numbers, and
     "clientName": "{{THE NAME OF YOUR APP ON THE OAUTH PAGE}}",
     "scope": [
       "r:locations:*",
-      "r:scenes:*",
-      "x:scenes:*"
+      "r:devices:*",
+      "x:devices:*"
     ],
     "redirectUris": ["{{REDIRECT URL FROM ABOVE LOG OUTPUT}}"]
   }
