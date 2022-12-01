@@ -129,7 +129,7 @@ server.get('/viewData', async (req, res) => {
 		const devices = await Promise.all(ops)
 
 		// Respond to the request
-	res.send({
+		res.send({
 			errorMessage: devices.length > 0 ? '' : 'No switch devices found in location',
 			devices: devices.sort( (a, b) => {
 				return a.label === b.label ? 0 : (a.label > b.label) ? 1 : -1
@@ -153,14 +153,14 @@ server.get('/logout', async function(req, res) {
 
 		// Delete the installed app instance from SmartThings
 		await ctx.api.installedApps.delete()
-
-		// Delete the session data
-		req.session = null
-		res.redirect('/')
 	}
 	catch (error) {
-		res.redirect('/')
+		console.error('Error logging out', error.message)
 	}
+	// Delete the session data
+	req.session = null
+	res.redirect('/')
+
 })
 
 /*
