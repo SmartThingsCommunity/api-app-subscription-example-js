@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "@smartthings/file-context-store": "^0.0.1",
-    "@smartthings/smartapp": "^3.0.0",
+    "@smartthings/smartapp": "^3.0.1",
     "cookie-session": "^2.0.0",
     "dotenv": "^16.0.1",
     "ejs": "~3.1.8",

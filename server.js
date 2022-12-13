@@ -13,6 +13,7 @@ const appId = process.env.APP_ID
 const clientId = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
 const serverUrl = process.env.SERVER_URL || `https://${process.env.PROJECT_DOMAIN}.glitch.me`
+const apiUrl = process.env.API_URL || 'https://api.smartthings.com'
 const redirectUri =  `${serverUrl}/oauth/callback`
 const scope = encodeUrl('r:locations:* r:devices:* x:devices:*');
 
@@ -97,7 +98,7 @@ server.get('/',async (req, res) => {
 	else {
 		// No context cookie. Display link to authenticate with SmartThings
 		res.render('index', {
-			url: `https://api.smartthings.com/oauth/authorize?client_id=${clientId}&scope=${scope}&response_type=code&redirect_uri=${redirectUri}`
+			url: `${apiUrl}/oauth/authorize?client_id=${clientId}&scope=${scope}&response_type=code&redirect_uri=${redirectUri}`
 		})
 	}
 })
