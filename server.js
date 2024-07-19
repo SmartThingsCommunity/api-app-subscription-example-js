@@ -65,7 +65,7 @@ server.use(cookieSession({
 	keys: ['key1', 'key2']
 }))
 server.set('view engine', 'ejs')
-server.use(logger('dev'))
+server.use(logger(':date[iso] :method :url :res[location] :status :response-time ms'))
 server.use(express.json())
 server.use(express.urlencoded({extended: false}))
 server.use(express.static(path.join(__dirname, 'public')))
@@ -170,6 +170,8 @@ server.get('/logout', async function(req, res) {
 server.get('/oauth/callback', async (req, res, next) => {
 
 	try {
+		console.log('Handling OAuth callback', JSON.stringify(req.query))
+
 		// Store the SmartApp context including access and refresh tokens. Returns a context object for use in making
 		// API calls to SmartThings
 		const ctx = await apiApp.handleOAuthCallback(req)
@@ -185,12 +187,21 @@ server.get('/oauth/callback', async (req, res, next) => {
 		}
 
 		// Remove any existing subscriptions and unsubscribe to device switch events
-		await ctx.api.subscriptions.delete()
-		await ctx.api.subscriptions.subscribeToCapability('switch', 'switch', 'switchHandler');
+		try {
+			await ctx.api.subscriptions.delete()
+			try {
+				await ctx.api.subscriptions.subscribeToCapability('switch', 'switch', 'switchHandler');
+			} catch (error) {
+				console.error('Error subscribing to switch events', error.message)
+			}
+		} catch (error) {
+			console.error('Error deleting subscriptions', error.message)
+		}
 
 		// Redirect back to the main page
 		res.redirect('/')
 	} catch (error) {
+		console.log('Error handling OAuth callback', error.message)
 		next(error)
 	}
 })
