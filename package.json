@@ -1,7 +1,8 @@
 {
   "name": "api-app-subscription-example-js",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
+    "lint": "eslint .",
     "start": "node server.js"
   },
   "dependencies": {
@@ -14,9 +15,17 @@
     "express": "~4.19.2",
     "express-sse": "^0.5.3",
     "morgan": "~1.10.0",
+    "nanoid": "^3.3.7",
     "sshpk": "^1.15.2"
   },
+  "devDependencies": {
+    "eslint": "^8.55.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-dollar-sign": "^1.0.2",
+    "eslint-plugin-jquery": "^1.5.1",
+    "eslint-plugin-standard": "^5.0.0"
+  },
   "engines": {
-    "node": "^20"
+    "node": "^16"
   }
 }

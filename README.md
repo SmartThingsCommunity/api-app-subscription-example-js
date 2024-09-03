@@ -28,12 +28,13 @@ production use. There are alternative storage mechanisms for DynamoDB and Fireba
 ## Getting Started
 
 ### Prerequisites
-- A [SmartThings](https://smartthings.com) account
+- A [SmartThings](https://smartthings.com) account with at least one location and device with the switch capability
 - The [SmartThings CLI](https://github.com/SmartThingsCommunity/smartthings-cli#readme) installed
 - [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs.com/) installed
 - [ngrok](https://ngrok.com/) or similar tool to create a secure tunnel to a publicly available URL
 
 Note that as an alternative to running the app locally you can use [Glitch](glitch.com) to host your app.
+
 ## Instructions
 
 ### 1. Set up your server
@@ -47,10 +48,17 @@ cd api-app-subscription-example-js
 npm install
 ```
 
+Start ngrok or similar tool to create a secure tunnel to your local server. Note that the free version of ngrok will
+change the subdomain part of the URL every time you restart it, so you will need to update the server URL in the `.env`. 
+Alternately, you can use the paid version which supports reserved subdomains:
+```
+ngrok http 3000
+```
+
 Create a file named `.env` in the project directory and set the base URL of the server to your ngrok URL,
 For example:
 ```
-SERVER_URL=https://your-subdomain-name.ngrok.io
+SERVER_URL=https://315e5367357f.ngrok.app
 ```
 
 Start your server and make note of the information it prints out:
@@ -68,45 +76,60 @@ the server to start.
 Look at the log output of your local server or Glitch app. You should see something like this:
 ```
 Target URL -- Copy this value into the targetUrl field of you app creation request:
-https://node-st.ngrok.io
+https://315e5367357f.ngrok.app
 
 Redirect URI -- Copy this value into redirectUris field of your app creation request:
-https://node-st.ngrok.io/oauth/callback
+https://315e5367357f.ngrok.app/oauth/callback
 
 Website URL -- Visit this URL in your browser to log into SmartThings and connect your account:
-https://node-st.ngrok.io
+https://315e5367357f.ngrok.app
 ```
 
-Create a file like this one, replacing the specified information in double curly brackets {{}}. 
-The `appName` needs to be some unique name with lower-case letters, numbers, and dashes and no spaces.
-```json
-{
-  "appName": "{{SOME UNIQUE NAME YOU CHOOSE}}",
-  "appType": "API_ONLY",
-  "classifications": [
-    "CONNECTED_SERVICE"
-  ],
-  "displayName": "{{THE NAME OF YOUR APP}}",
-  "description": "{{A DESCRIPTION OF YOUR APP}}",
-  "singleInstance": true,
-  "apiOnly": {
-    "targetUrl": "{{TARGET URL FROM THE ABOVE LOG OUTPUT}}"
-  },
-  "oauth": {
-    "clientName": "{{THE NAME OF YOUR APP ON THE OAUTH PAGE}}",
-    "scope": [
-      "r:locations:*",
-      "r:devices:*",
-      "x:devices:*"
-    ],
-    "redirectUris": ["{{REDIRECT URL FROM ABOVE LOG OUTPUT}}"]
-  }
-}
-```
+Run the `smartthings apps:create` command to create a new app. You will be prompted for the required
+information. The following is an example of the output from the command:
 
-Create the app using the SmartThings CLI. For example, if your file is named `app.json` run this command:
-```
-smartthings apps:create -i app.json
+```bash
+~ % smartthings apps:create
+? What kind of app do you want to create? (Currently, only OAuth-In apps are supported.) OAuth-In App
+
+More information on writing SmartApps can be found at
+  https://developer.smartthings.com/docs/connected-services/smartapp-basics
+
+? Display Name My API Subscription App
+? Description Allows control of SmartThings devices
+? Icon Image URL (optional) 
+? Target URL (optional) https://315e5367357f.ngrok.app
+
+More information on OAuth 2 Scopes can be found at:
+  https://www.oauth.com/oauth2-servers/scope/
+
+To determine which scopes you need for the application, see documentation for the individual endpoints you will use in your app:
+  https://developer.smartthings.com/docs/api/public/
+
+? Select Scopes. r:devices:*, x:devices:*, r:locations:*
+? Add or edit Redirect URIs. Add Redirect URI.
+? Redirect URI (? for help) https://315e5367357f.ngrok.app/oauth/callback
+? Add or edit Redirect URIs. Finish editing Redirect URIs.
+? Choose an action. Finish and create OAuth-In SmartApp.
+Basic App Data:
+─────────────────────────────────────────────────────────────────────────────
+ Display Name     My API Subscription App                                    
+ App Id           3275eef3-xxxx-xxxx-xxxx-xxxxxxxxxxxx                       
+ App Name         amyapisubscriptionapp-aaea18b1-xxxx-xxxx-xxxx-xxxxxxxxxxxx 
+ Description      Allows control of SmartThings devices                      
+ Single Instance  true                                                       
+ Classifications  CONNECTED_SERVICE                                          
+ App Type         API_ONLY                                                   
+ Target URL       https://315e5367357f.ngrok.app                             
+ Target Status    PENDING                                                    
+─────────────────────────────────────────────────────────────────────────────
+
+
+OAuth Info (you will not be able to see the OAuth info again so please save it now!):
+───────────────────────────────────────────────────────────
+ OAuth Client Id      7a850484-xxxx-xxxx-xxxx-xxxxxxxxxxxx 
+ OAuth Client Secret  3581f317-xxxx-xxxx-xxxx-xxxxxxxxxxxx 
+───────────────────────────────────────────────────────────
 ```
 
 Save the output of the create command for later use. It contains the client ID and secret of your app. You
@@ -114,8 +137,9 @@ won't be able to see those values again.
 
 After running the create command look at your server logs for a line similar to this one:
 ```
-CONFIRMATION request for app f9a665e7-5a76-4b1e-bdfe-31135eccc2f3, to enable events visit 
-https://api.smartthings.com/apps/f9a665e7-5a76-4b1e-bdfe-31135eccc2f3/confirm-registration?token=fd95...
+2024-09-03T14:24:14.967Z warn: Unexpected CONFIRMATION request for app 3275eef3-c18c-4c0c-bbe6-1fbd36739b5c, 
+received {"messageType":"CONFIRMATION","confirmationData":{"appId":"3275eef3-c18c-4c0c-bbe6-1fbd36739b5c",
+"confirmationUrl":"https://api.smartthings.com/apps/3275eef3-xxxx-xxxx-xxxx-xxxxxxxxxxxx/confirm-registration?token=53c980fa-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}}
 ```
 
 Paste the URL into a browser or request it with a utility like curl to enable callbacks to your app. 
@@ -123,7 +147,7 @@ The response should contain the
 _targetURL_ value from your app creation request, for example:
 ```
 {
-    targetUrl: "https://your-subdomain-name.ngrok.io"
+    targetUrl: "https://315e5367357f.ngrok.app"
 }
 ```
 
@@ -132,9 +156,9 @@ _targetURL_ value from your app creation request, for example:
 Add the _APP_ID_, _CLIENT_ID_ and _CLIENT_SECRET_ properties from `apps:create` command 
 response to your `.env` file:
 ```
-APP_ID={{RESPONSE appId FIELD VALUE}}
-CLIENT_ID={{RESPONSE oauthClientId FIELD VALUE}}
-CLIENT_SECRET={{RESPONSE oauthClientSecret FIELD VALUE}}
+APP_ID=3275eef3-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+CLIENT_ID=7a850484-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+CLIENT_SECRET=3581f317-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
 Restart your server:
@@ -146,8 +170,12 @@ Note that if you are using Glitch your server will restart automatically when yo
 
 ### 4. Log into SmartThings
 
-Go to Website URL from the server log in a browser, log in with your SmartThings account credentials, and 
+Open the Website URL from the server log (`https://315e5367357f.ngrok.app` in this example) in a browser, 
+log in with your SmartThings account credentials, and 
 choose a location. You should see a page listing all devices in that location with the _switch_
 capability. Tapping the device on the page should turn the switch on and off. You should also see
 the states of the switches on the page change when you turn them on and off with the SmartThings
 mobile app.
+
+## Troubleshooting
+
