@@ -179,3 +179,26 @@ mobile app.
 
 ## Troubleshooting
 
+Your app should be able to control switches and receive events from them. If the app UI is not being updated
+when you change the switch state with the SmartThings mobile app, make sure that the target status is `CONFIRMED` 
+by running the following command:
+```
+~ % smartthings apps 3275eef3-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+─────────────────────────────────────────────────────────────────────────────
+ Display Name     My API Subscription App                                    
+ App Id           3275eef3-xxxx-xxxx-xxxx-xxxxxxxxxxxx                       
+ App Name         amyapisubscriptionapp-ab9fb550-xxxx-xxxx-xxxx-xxxxxxxxxxxx 
+ Description      Allows SmartThings switches to be controlled               
+ Single Instance  true                                                       
+ Classifications  CONNECTED_SERVICE                                          
+ App Type         API_ONLY                                                   
+ Target URL       https://315e5367357f.ngrok.app                             
+ Target Status    CONFIRMED                                                  
+─────────────────────────────────────────────────────────────────────────────
+```
+
+If the target status is 'PENDING' you need to confirm the registration by running the following command and 
+visiting the confirmation URL in a browser or using a utility like curl:
+```
+smatthings apps:register 3275eef3-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
